@@ -83,6 +83,11 @@ run = "snakemake --cores 1"
 # tiny live request, and tells authentication and authorisation apart when it
 # fails. Run this before the first real retrieval.
 check-destine = "python scripts/check_destine_access.py"
+# The long Climate DT retrieval (~3 h with the default 4 workers, ~24 GB).
+# Restartable: one NetCDF per month, existing files are skipped. Run it detached
+#   nohup pixi run retrieve > results/logs/retrieve.log 2>&1 &
+# and 01_data_download.py afterwards finds everything cached.
+retrieve = "python scripts/retrieve.py"
 book = "myst build --html"
 lab = "jupyter lab"
 

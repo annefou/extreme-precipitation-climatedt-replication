@@ -28,7 +28,7 @@
 # | Scenario | SSP3-7.0 |
 # | Historical window | `activity=baseline`, `experiment=hist`, 1991–2010 |
 # | Scenario window | `activity=projections`, `experiment=SSP3-7.0`, 2030–2049 |
-# | Variable | `tp` — total precipitation, hourly accumulation, `levtype=sfc`, `stream=clte` |
+# | Variable | `avg_tprate` — hourly-mean precipitation rate (kg m⁻² s⁻¹), `levtype=sfc`, `stream=clte`. **Not** `tp`: `param=tp` and `param=228` are both refused with HTTP 400 |
 # | Resolution | `high` — the native HEALPix delivery, level 10 (nside=1024, ~6.3 km) |
 # | Domain | Germany, as a server-side polygon clip |
 #
@@ -98,8 +98,9 @@
 #   found credential means "worth attempting", not "will succeed" — the cell
 #   below reports which credential was found, and the first request is what
 #   proves entitlement.
-# - **Quotas:** 50 requests/second, and at most **5 concurrent downloads**. This
-#   notebook fetches one year at a time, serially, so it stays inside both.
+# - **Quotas:** 50 requests/second, and at most **5 concurrent downloads**. The
+#   retrieval runs 4 months at a time, which stays inside both and leaves one
+#   slot free for an interactive `check-destine` probe.
 # - **In CI:** there is no secret for this. CI runs the pipeline on the
 #   synthetic stand-in described below, which is a smoke test, not a result.
 #
@@ -112,7 +113,6 @@
 # across the figure. A synthetic number must never reach the FORRT Outcome.
 
 # %%
-import calendar
 import json
 import sys
 from pathlib import Path
@@ -120,6 +120,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path("../scripts").resolve()))
 
 import climatedt  # noqa: E402
+import retrieve  # noqa: E402
 import synthetic_climatedt  # noqa: E402
 
 RAW_DIR = Path("../data/raw")
@@ -147,7 +148,8 @@ for window, spec in climatedt.WINDOWS.items():
     years = last - first + 1
     n_months += years * 12
     print(f"{window:8s} {spec['label']:24s} {years} years x 8760 hours")
-print(f"\n{n_months} monthly requests in total, ~80 s each -> roughly {n_months * 80 / 3600:.0f} h")
+print(f"\n{n_months} monthly requests in total, ~80 s each")
+print(f"  serial: ~{n_months * 80 / 3600:.0f} h;  4 at a time: ~{n_months * 80 / 3600 / 4:.0f} h")
 print(f"durations to be derived in 02: {climatedt.DURATIONS_H} hours")
 print(f"return periods to be estimated in 03: {climatedt.RETURN_PERIODS_Y} years")
 
@@ -164,8 +166,8 @@ print(f"return periods to be estimated in 03: {climatedt.RETURN_PERIODS_Y} years
 # Monthly files also make the retrieval restartable: an interrupted run resumes
 # at the first missing month rather than starting the year again.
 #
-# **Quota:** 50 requests/second and at most 5 concurrent downloads. This loop is
-# serial, so it sits well inside both.
+# **Quota:** 50 requests/second and at most 5 concurrent downloads, so the
+# retrieval runs 4 months at a time — leaving one slot free.
 
 # %%
 HAVE_DESTINE = climatedt.have_credentials()
@@ -174,50 +176,19 @@ print(f"will attempt Polytope: {HAVE_DESTINE}")
 print(f"endpoint         : {climatedt.POLYTOPE_ADDRESS}")
 
 
-# %%
-EXPECTED_HOURS = len(climatedt.ALL_HOURS.split("/"))
-
-
-def fetch_month(window: str, year: int, month: int) -> Path:
-    """One calendar month of hourly precipitation over Germany, as NetCDF."""
-    out = RAW_DIR / f"precip_{window}_{year}{month:02d}.nc"
-    if out.exists():
-        print(f"  [cached] {out.name}")
-        return out
-    request = climatedt.clte_polygon_request(window, year, month)
-    print(f"  [fetch] {window} {year}-{month:02d} ...", flush=True)
-    raw = climatedt.retrieve(request).to_xarray()
-    ds = climatedt.to_study_schema(raw)
-
-    # Guard against the silent under-fetch: the service accepts a `/to/../by/..`
-    # range for `time` and then returns only the first hour, with no error. If a
-    # future edit reintroduces that, this assertion is what catches it rather
-    # than a plausible-looking but 24x-too-small annual maximum.
-    n_days = calendar.monthrange(year, month)[1]
-    got = ds.sizes.get("time", 0)
-    if got != n_days * EXPECTED_HOURS:
-        raise RuntimeError(
-            f"{window} {year}-{month:02d}: expected {n_days * EXPECTED_HOURS} hourly "
-            f"fields ({n_days} days x {EXPECTED_HOURS} h), got {got}. Check that "
-            f"`time` is an explicit hour list, not a /to/../by/.. range."
-        )
-
-    ds.attrs.update(
-        provenance="destine-climate-dt",
-        window=window,
-        window_label=climatedt.WINDOWS[window]["label"],
-        year=year,
-        month=month,
-        polytope_address=climatedt.POLYTOPE_ADDRESS,
-        request=json.dumps({k: v for k, v in request.items() if k != "feature"}),
-        polygon=json.dumps(climatedt.polygon_provenance()),
-    )
-    ds.to_netcdf(out)
-    print(f"    -> {out.name} ({out.stat().st_size / 1e6:.0f} MB, {got} hours)")
-    return out
-
-
 # %% [markdown]
+# The loop itself lives in `scripts/retrieve.py`, not here. A full retrieval
+# takes hours, and a notebook kernel held open that long is a liability — so the
+# long run is done from the command line:
+#
+# ```bash
+# nohup pixi run retrieve > results/logs/retrieve.log 2>&1 &
+# ```
+#
+# and this notebook then finds every month already cached and completes in
+# seconds, still producing the executed `.ipynb` the Jupyter Book needs. Both
+# paths call the same `fetch_month`, so they cannot drift apart.
+#
 # A credential that is present but **rejected** stops this notebook. It
 # deliberately does not fall back to the synthetic stand-in: silently swapping
 # real data for smoke-test data on the one machine that was supposed to produce
@@ -228,12 +199,9 @@ def fetch_month(window: str, year: int, month: int) -> Path:
 written: list[Path] = []
 if HAVE_DESTINE:
     try:
-        for window, spec in climatedt.WINDOWS.items():
-            first, last = spec["years"]
-            print(f"{window} ({spec['label']}):")
-            for year in range(first, last + 1):
-                for month in range(1, 13):
-                    written.append(fetch_month(window, year, month))
+        written, failed = retrieve.retrieve_all(RAW_DIR)
+        if failed:
+            raise RuntimeError(f"{len(failed)} month(s) could not be retrieved: {failed[:3]}")
     except Exception:
         print(
             f"\nRetrieval failed with a credential present ({climatedt.credential_source()}).\n"

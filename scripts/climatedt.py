@@ -158,16 +158,44 @@ def clmn_global_request(window: str, year: int, param: str = PARAM_AVG_2T) -> di
     }
 
 
-def have_credentials() -> bool:
-    """True if a DestinE Data Lake token looks available to earthkit/polytope.
+def credential_source() -> str | None:
+    """Where polytope-client will find a credential, or None if it will find none.
 
-    Polytope reads `~/.polytopeapirc`, and the DestinE examples export the
-    token as an environment variable after running `desp-authentication.py`.
-    Either is enough to attempt a retrieval; neither means we are offline.
+    Mirrors `polytope/api/Auth.py::fetch_key` and `Config.py`, in their order of
+    precedence, so this reports what the client will actually do rather than a
+    guess:
+
+      1. `POLYTOPE_USER_KEY` in the environment (every config key is settable as
+         `POLYTOPE_<NAME>`), which takes priority over any file.
+      2. `~/.polytopeapirc` — `{"user_key": ...}` and optionally `"user_email"`.
+         `POLYTOPE_KEY_PATH` moves it.
+      3. `~/.ecmwfapirc` — the fallback, with the differently named keys
+         `{"key": ..., "email": ...}`.
+
+    A key WITHOUT an email is sent as `Bearer <key>`; a key WITH one is sent as
+    `EmailKey <email>:<key>`. Both are valid — `desp-authentication.py` writes
+    the first kind — so the presence of an email is not something to warn about.
     """
-    if os.environ.get("POLYTOPE_USER_KEY") or os.environ.get("DESP_ACCESS_TOKEN"):
-        return True
-    return (Path.home() / ".polytopeapirc").exists()
+    if os.environ.get("POLYTOPE_USER_KEY"):
+        return "env:POLYTOPE_USER_KEY"
+    key_path = Path(os.environ.get("POLYTOPE_KEY_PATH") or Path.home() / ".polytopeapirc")
+    if key_path.exists():
+        return f"file:{key_path}"
+    ecmwf = Path.home() / ".ecmwfapirc"
+    if ecmwf.exists():
+        return f"file:{ecmwf}"
+    return None
+
+
+def have_credentials() -> bool:
+    """True if polytope-client will find a credential to authenticate with.
+
+    Authentication is not authorisation: a DESP account also needs the
+    Destination Earth Data Lake entitlement for the `destination-earth`
+    collection. A key that authenticates fine can still be refused the data, so
+    treat a True here as "worth attempting", not "will succeed".
+    """
+    return credential_source() is not None
 
 
 def retrieve(request: dict, out_path: Path):

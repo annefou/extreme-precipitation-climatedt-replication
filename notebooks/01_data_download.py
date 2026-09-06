@@ -49,12 +49,32 @@
 #
 # ## Credentials
 #
-# - **Where to get one:** a Destination Earth Data Lake (DEDL) / DESP account,
-#   <https://platform.destine.eu/>. Run the `desp-authentication.py` script from
-#   <https://github.com/destination-earth-digital-twins/polytope-examples> to
-#   mint a token.
-# - **Where it lives:** `~/.polytopeapirc`, or the `POLYTOPE_USER_KEY` /
-#   `DESP_ACCESS_TOKEN` environment variables.
+# Polytope authenticates with a single **key**. `polytope-client` looks for it
+# in this order (`polytope/api/Auth.py::fetch_key`, `Config.py`):
+#
+# 1. `POLYTOPE_USER_KEY` in the environment — every config key is settable as
+#    `POLYTOPE_<NAME>`, and the environment wins over any file.
+# 2. `~/.polytopeapirc` (move it with `POLYTOPE_KEY_PATH`):
+#    `{"user_key": "<key>"}`, optionally with `"user_email"`.
+# 3. `~/.ecmwfapirc` as a fallback — note the *different* key names,
+#    `{"key": "...", "email": "..."}`.
+#
+# A key on its own is sent as `Bearer <key>`; a key paired with an email is sent
+# as `EmailKey <email>:<key>`. Both are valid. A **DESP API key / token** is the
+# first kind — write it alone into `~/.polytopeapirc`, which is exactly what
+# `desp-authentication.py` does after an interactive login. An **ECMWF API key**
+# is the second kind and needs the email alongside it.
+#
+# - **Where to get one:** a Destination Earth Service Platform account,
+#   <https://platform.destine.eu/>.
+# - **Authentication is not authorisation.** The account also needs the
+#   Destination Earth Data Lake entitlement for the `destination-earth`
+#   collection. A key that authenticates can still be refused the data, so a
+#   found credential means "worth attempting", not "will succeed" — the cell
+#   below reports which credential was found, and the first request is what
+#   proves entitlement.
+# - **Quotas:** 50 requests/second, and at most **5 concurrent downloads**. This
+#   notebook fetches one year at a time, serially, so it stays inside both.
 # - **In CI:** there is no secret for this. CI runs the pipeline on the
 #   synthetic stand-in described below, which is a smoke test, not a result.
 #
@@ -111,7 +131,9 @@ print(f"return periods to be estimated in 03: {climatedt.RETURN_PERIODS_Y} years
 
 # %%
 HAVE_DESTINE = climatedt.have_credentials()
-print(f"DestinE credentials found: {HAVE_DESTINE}")
+print(f"credential found : {climatedt.credential_source() or 'none'}")
+print(f"will attempt Polytope: {HAVE_DESTINE}")
+print(f"endpoint         : {climatedt.POLYTOPE_ADDRESS}")
 
 
 # %%

@@ -136,6 +136,58 @@ def test_germany_polygon_records_its_provenance():
     assert "ring" not in prov
 
 
+# --- credential discovery -------------------------------------------------
+#
+# These mirror polytope-client's own lookup order (Auth.py::fetch_key,
+# Config.py). Getting it wrong is expensive in a specific way: the notebook
+# would silently write SYNTHETIC data on a machine that does have a key.
+
+@pytest.fixture
+def no_credentials(monkeypatch, tmp_path):
+    """A machine with no polytope credential anywhere."""
+    for var in ("POLYTOPE_USER_KEY", "POLYTOPE_KEY_PATH"):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setattr(climatedt.Path, "home", staticmethod(lambda: tmp_path))
+    return tmp_path
+
+
+def test_no_credential_anywhere_is_detected(no_credentials):
+    assert climatedt.credential_source() is None
+    assert climatedt.have_credentials() is False
+
+
+def test_environment_key_is_found_first(no_credentials, monkeypatch):
+    (no_credentials / ".polytopeapirc").write_text('{"user_key": "from-file"}')
+    monkeypatch.setenv("POLYTOPE_USER_KEY", "from-env")
+    # polytope-client applies env-var config over file config, so must this.
+    assert climatedt.credential_source() == "env:POLYTOPE_USER_KEY"
+
+
+def test_polytopeapirc_is_found(no_credentials):
+    (no_credentials / ".polytopeapirc").write_text('{"user_key": "abc"}')
+    assert climatedt.credential_source().endswith(".polytopeapirc")
+    assert climatedt.have_credentials() is True
+
+
+def test_ecmwfapirc_is_the_fallback(no_credentials):
+    (no_credentials / ".ecmwfapirc").write_text('{"key": "abc", "email": "a@b.c"}')
+    assert climatedt.credential_source().endswith(".ecmwfapirc")
+
+
+def test_polytopeapirc_wins_over_ecmwfapirc(no_credentials):
+    (no_credentials / ".polytopeapirc").write_text('{"user_key": "abc"}')
+    (no_credentials / ".ecmwfapirc").write_text('{"key": "def", "email": "a@b.c"}')
+    assert climatedt.credential_source().endswith(".polytopeapirc")
+
+
+def test_key_path_override_is_honoured(no_credentials, monkeypatch, tmp_path):
+    elsewhere = tmp_path / "keys" / "mine.json"
+    elsewhere.parent.mkdir()
+    elsewhere.write_text('{"user_key": "abc"}')
+    monkeypatch.setenv("POLYTOPE_KEY_PATH", str(elsewhere))
+    assert climatedt.credential_source() == f"file:{elsewhere}"
+
+
 # --- geometry -------------------------------------------------------------
 
 def test_authalic_latitude_is_zero_at_the_equator_and_poles():

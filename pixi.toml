@@ -79,6 +79,10 @@ tests = { features = ["tests"], solve-group = "default" }
 
 [tasks]
 run = "snakemake --cores 1"
+# Answers "does my DestinE key actually reach the Climate DT data?" with one
+# tiny live request, and tells authentication and authorisation apart when it
+# fails. Run this before the first real retrieval.
+check-destine = "python scripts/check_destine_access.py"
 book = "myst build --html"
 lab = "jupyter lab"
 

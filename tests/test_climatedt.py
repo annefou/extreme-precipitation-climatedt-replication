@@ -24,7 +24,7 @@ import geometry  # noqa: E402
 # --- request builders -----------------------------------------------------
 
 def test_clte_request_targets_generation_2():
-    req = climatedt.clte_polygon_request("ssp370", 2035)
+    req = climatedt.clte_polygon_request("ssp370", 2035, 7)
     assert req["generation"] == "2"
     assert req["dataset"] == "climate-dt"
     assert req["class"] == "d1"
@@ -35,48 +35,80 @@ def test_clte_request_uses_the_generation_2_activity_names():
     # Generation 1 used activity="ScenarioMIP"; generation 2 uses
     # "projections" for the scenario and "baseline"/"hist" for the historical
     # period. Getting this wrong retrieves a different simulation silently.
-    assert climatedt.clte_polygon_request("ssp370", 2035)["activity"] == "projections"
-    assert climatedt.clte_polygon_request("ssp370", 2035)["experiment"] == "SSP3-7.0"
-    assert climatedt.clte_polygon_request("hist", 1995)["activity"] == "baseline"
-    assert climatedt.clte_polygon_request("hist", 1995)["experiment"] == "hist"
+    assert climatedt.clte_polygon_request("ssp370", 2035, 7)["activity"] == "projections"
+    assert climatedt.clte_polygon_request("ssp370", 2035, 7)["experiment"] == "SSP3-7.0"
+    assert climatedt.clte_polygon_request("hist", 1995, 7)["activity"] == "baseline"
+    assert climatedt.clte_polygon_request("hist", 1995, 7)["experiment"] == "hist"
 
 
-def test_clte_request_asks_for_every_hour():
-    req = climatedt.clte_polygon_request("hist", 2000)
-    assert req["time"] == "0000/to/2300/by/0100"
+def test_clte_request_asks_for_every_hour_as_an_explicit_list():
+    # THE regression test of this module. Feature extraction accepts the
+    # /to/../by/.. range syntax for `date` but NOT for `time`: given a range it
+    # returns the FIRST HOUR ONLY and reports no error whatsoever. Verified
+    # live -- 1 datetime with the range, 24 with this list. A 24x under-fetch
+    # that looks completely healthy is the worst kind of bug in a pipeline
+    # whose output is a signed, permanent nanopublication.
+    req = climatedt.clte_polygon_request("hist", 2000, 7)
+    hours = req["time"].split("/")
+    assert len(hours) == 24
+    assert hours[0] == "0000" and hours[-1] == "2300"
+    assert "to" not in hours and "by" not in hours
     assert req["stream"] == "clte"
     assert req["levtype"] == "sfc"
-    assert req["param"] == "tp"
 
 
-def test_clte_request_covers_one_whole_calendar_year():
-    assert climatedt.clte_polygon_request("hist", 2003)["date"] == "20030101/to/20031231"
+def test_clte_request_asks_for_avg_tprate_not_tp():
+    # Verified live: param=tp and param=228 are both refused with HTTP 400.
+    # The clte stream carries precipitation among the 20 "sfc (hourly mean)"
+    # flux variables, which keep the avg_ prefix -- and it is a RATE, not an
+    # accumulation.
+    assert climatedt.clte_polygon_request("hist", 2000, 7)["param"] == "avg_tprate"
+    assert climatedt.PRECIP_UNITS == "kg m**-2 s**-1"
+
+
+def test_rate_converts_to_millimetres_per_hour():
+    # 1 kg m-2 of water is 1 mm depth; an hour is 3600 s. A metres-to-mm factor
+    # of 1000 would be wrong by 3.6x and still look plausible.
+    assert climatedt.RATE_TO_MM_PER_HOUR == 3600.0
+
+
+def test_clte_request_covers_one_whole_calendar_month():
+    assert climatedt.clte_polygon_request("hist", 2003, 7)["date"] == "20030701/to/20030731"
+    # February, and February in a leap year.
+    assert climatedt.clte_polygon_request("hist", 2003, 2)["date"] == "20030201/to/20030228"
+    assert climatedt.clte_polygon_request("hist", 2004, 2)["date"] == "20040201/to/20040229"
+
+
+def test_clte_request_rejects_an_impossible_month():
+    for bad in (0, 13, -1):
+        with pytest.raises(ValueError):
+            climatedt.clte_polygon_request("hist", 2000, bad)
 
 
 def test_clte_request_asks_for_the_native_resolution():
     # 'high' is the native HEALPix delivery (level 10, ~6.3 km); 'standard' is
     # coarser and would make the shortest durations meaningless.
-    assert climatedt.clte_polygon_request("hist", 2000)["resolution"] == "high"
+    assert climatedt.clte_polygon_request("hist", 2000, 7)["resolution"] == "high"
 
 
 def test_clte_request_carries_the_germany_polygon_server_side():
-    feature = climatedt.clte_polygon_request("hist", 2000)["feature"]
+    feature = climatedt.clte_polygon_request("hist", 2000, 7)["feature"]
     assert feature["type"] == "polygon"
     assert len(feature["shape"]) > 50
     # MARS cannot crop HEALPix with a lat/lon box, so there must be no `area`.
-    assert "area" not in climatedt.clte_polygon_request("hist", 2000)
+    assert "area" not in climatedt.clte_polygon_request("hist", 2000, 7)
 
 
 def test_clte_request_rejects_a_year_outside_its_window():
     with pytest.raises(ValueError):
-        climatedt.clte_polygon_request("hist", 2035)
+        climatedt.clte_polygon_request("hist", 2035, 7)
     with pytest.raises(ValueError):
-        climatedt.clte_polygon_request("ssp370", 1995)
+        climatedt.clte_polygon_request("ssp370", 1995, 7)
 
 
 def test_request_rejects_an_unknown_window():
     with pytest.raises(KeyError):
-        climatedt.clte_polygon_request("rcp85", 2035)
+        climatedt.clte_polygon_request("rcp85", 2035, 7)
 
 
 def test_clmn_request_is_global_and_monthly():
@@ -186,6 +218,61 @@ def test_key_path_override_is_honoured(no_credentials, monkeypatch, tmp_path):
     elsewhere.write_text('{"user_key": "abc"}')
     monkeypatch.setenv("POLYTOPE_KEY_PATH", str(elsewhere))
     assert climatedt.credential_source() == f"file:{elsewhere}"
+
+
+# --- CoverageJSON reshaping -----------------------------------------------
+#
+# Built from a dataset shaped exactly like the one a live polygon request
+# returned on 2026-09-06: datetimes x number x steps x points, with
+# latitude/longitude/levelist along points and the datetimes as STRINGS.
+
+def _coverage_like(n_times: int = 3, n_points: int = 5):
+    import xarray as xr
+
+    times = [f"2030-06-0{i + 1} 00:00:00Z" for i in range(n_times)]
+    values = np.arange(n_times * n_points, dtype="float32").reshape(n_times, 1, 1, n_points)
+    return xr.Dataset(
+        {climatedt.PARAM_PRECIP: (("datetimes", "number", "steps", "points"), values)},
+        coords={
+            "datetimes": times,
+            "number": [0],
+            "steps": [0],
+            "points": np.arange(n_points),
+            "latitude": ("points", np.linspace(48.0, 54.0, n_points)),
+            "longitude": ("points", np.linspace(7.0, 14.0, n_points)),
+            "levelist": ("points", np.zeros(n_points)),
+        },
+    )
+
+
+def test_to_study_schema_renames_dims_and_parses_times():
+    out = climatedt.to_study_schema(_coverage_like())
+    assert out[climatedt.PARAM_PRECIP].dims == ("time", "cell")
+    assert str(out["time"].dtype).startswith("datetime64")
+    assert out.sizes == {"time": 3, "cell": 5}
+
+
+def test_to_study_schema_keeps_cell_geometry_and_drops_the_rest():
+    out = climatedt.to_study_schema(_coverage_like())
+    assert {"latitude", "longitude"} <= set(out.coords)
+    assert not {"number", "steps", "levelist", "datetimes", "points"} & set(out.coords)
+
+
+def test_to_study_schema_preserves_values_in_order():
+    src = _coverage_like()
+    out = climatedt.to_study_schema(src)
+    expected = src[climatedt.PARAM_PRECIP].values[:, 0, 0, :]
+    assert np.array_equal(out[climatedt.PARAM_PRECIP].values, expected)
+
+
+def test_to_study_schema_refuses_to_collapse_real_ensemble_members():
+    # A multi-member request must fail loudly rather than silently keep member 0.
+    import xarray as xr
+
+    src = xr.concat([_coverage_like(), _coverage_like()], dim="number")
+    src = src.assign_coords(number=[0, 1])
+    with pytest.raises(ValueError, match="number"):
+        climatedt.to_study_schema(src)
 
 
 # --- geometry -------------------------------------------------------------

@@ -112,6 +112,7 @@
 # across the figure. A synthetic number must never reach the FORRT Outcome.
 
 # %%
+import calendar
 import json
 import sys
 from pathlib import Path
@@ -132,7 +133,7 @@ RAW_DIR.mkdir(parents=True, exist_ok=True)
 # the data in `data/raw/sources.json`.
 
 # %%
-one_request = climatedt.clte_polygon_request("ssp370", 2030)
+one_request = climatedt.clte_polygon_request("ssp370", 2030, 1)
 print(json.dumps({k: v for k, v in one_request.items() if k != "feature"}, indent=2))
 print(
     f"feature: polygon with {len(one_request['feature']['shape'])} vertices "
@@ -140,19 +141,31 @@ print(
 )
 
 # %%
+n_months = 0
 for window, spec in climatedt.WINDOWS.items():
     first, last = spec["years"]
-    print(f"{window:8s} {spec['label']:24s} {last - first + 1} years x 8760 hours")
-print(f"\ndurations to be derived in 02: {climatedt.DURATIONS_H} hours")
+    years = last - first + 1
+    n_months += years * 12
+    print(f"{window:8s} {spec['label']:24s} {years} years x 8760 hours")
+print(f"\n{n_months} monthly requests in total, ~80 s each -> roughly {n_months * 80 / 3600:.0f} h")
+print(f"durations to be derived in 02: {climatedt.DURATIONS_H} hours")
 print(f"return periods to be estimated in 03: {climatedt.RETURN_PERIODS_Y} years")
 
 # %% [markdown]
 # ## Retrieval
 #
-# One request per (window, calendar year). Yearly files keep each NetCDF around
-# 300 MB — comfortably under the 2 GB point where `DOMAIN.md` switches to Zarr —
-# and make the retrieval restartable: an interrupted run resumes at the first
-# missing year instead of starting over.
+# One request per (window, year, **month**). Month is the chunk because that is
+# where the cost curve flattens: timed live at `high` resolution over Germany
+# (8,697 cells), a single day costs ~12 s, a week ~4.4 s/day, and a month
+# ~2.9 s/day. Fewer, larger requests win — but a whole year would be a ~3.6 GB
+# CoverageJSON response, where a month is ~300 MB and each NetCDF lands near
+# 25 MB, far under the 2 GB point where `DOMAIN.md` switches to Zarr.
+#
+# Monthly files also make the retrieval restartable: an interrupted run resumes
+# at the first missing month rather than starting the year again.
+#
+# **Quota:** 50 requests/second and at most 5 concurrent downloads. This loop is
+# serial, so it sits well inside both.
 
 # %%
 HAVE_DESTINE = climatedt.have_credentials()
@@ -162,29 +175,45 @@ print(f"endpoint         : {climatedt.POLYTOPE_ADDRESS}")
 
 
 # %%
-def fetch_year(window: str, year: int) -> Path:
-    """Retrieve one calendar year of hourly tp over Germany into a NetCDF file."""
-    out = RAW_DIR / f"tp_{window}_{year}.nc"
+EXPECTED_HOURS = len(climatedt.ALL_HOURS.split("/"))
+
+
+def fetch_month(window: str, year: int, month: int) -> Path:
+    """One calendar month of hourly precipitation over Germany, as NetCDF."""
+    out = RAW_DIR / f"precip_{window}_{year}{month:02d}.nc"
     if out.exists():
         print(f"  [cached] {out.name}")
         return out
-    request = climatedt.clte_polygon_request(window, year)
-    covjson = RAW_DIR / f"tp_{window}_{year}.covjson"
-    print(f"  [fetch] {window} {year} ...")
-    data = climatedt.retrieve(request, covjson)
-    ds = data.to_xarray()
+    request = climatedt.clte_polygon_request(window, year, month)
+    print(f"  [fetch] {window} {year}-{month:02d} ...", flush=True)
+    raw = climatedt.retrieve(request).to_xarray()
+    ds = climatedt.to_study_schema(raw)
+
+    # Guard against the silent under-fetch: the service accepts a `/to/../by/..`
+    # range for `time` and then returns only the first hour, with no error. If a
+    # future edit reintroduces that, this assertion is what catches it rather
+    # than a plausible-looking but 24x-too-small annual maximum.
+    n_days = calendar.monthrange(year, month)[1]
+    got = ds.sizes.get("time", 0)
+    if got != n_days * EXPECTED_HOURS:
+        raise RuntimeError(
+            f"{window} {year}-{month:02d}: expected {n_days * EXPECTED_HOURS} hourly "
+            f"fields ({n_days} days x {EXPECTED_HOURS} h), got {got}. Check that "
+            f"`time` is an explicit hour list, not a /to/../by/.. range."
+        )
+
     ds.attrs.update(
         provenance="destine-climate-dt",
         window=window,
         window_label=climatedt.WINDOWS[window]["label"],
         year=year,
+        month=month,
         polytope_address=climatedt.POLYTOPE_ADDRESS,
         request=json.dumps({k: v for k, v in request.items() if k != "feature"}),
         polygon=json.dumps(climatedt.polygon_provenance()),
     )
     ds.to_netcdf(out)
-    covjson.unlink(missing_ok=True)
-    print(f"    -> {out.name} ({out.stat().st_size / 1e6:.0f} MB)")
+    print(f"    -> {out.name} ({out.stat().st_size / 1e6:.0f} MB, {got} hours)")
     return out
 
 
@@ -203,7 +232,8 @@ if HAVE_DESTINE:
             first, last = spec["years"]
             print(f"{window} ({spec['label']}):")
             for year in range(first, last + 1):
-                written.append(fetch_year(window, year))
+                for month in range(1, 13):
+                    written.append(fetch_month(window, year, month))
     except Exception:
         print(
             f"\nRetrieval failed with a credential present ({climatedt.credential_source()}).\n"
@@ -257,10 +287,14 @@ def fetch_warming_levels() -> Path:
         first, last = spec["years"]
         yearly = []
         for year in range(first, last + 1):
-            grib = RAW_DIR / f"avg2t_{window}_{year}.grib"
-            if not grib.exists():
-                climatedt.retrieve(climatedt.clmn_global_request(window, year), grib)
-            ds = xr.open_dataset(grib, engine="cfgrib")
+            cached = RAW_DIR / f"avg2t_{window}_{year}.nc"
+            if cached.exists():
+                ds = xr.open_dataset(cached)
+            else:
+                ds = climatedt.retrieve(
+                    climatedt.clmn_global_request(window, year)
+                ).to_xarray()
+                ds.to_netcdf(cached)
             name = [v for v in ds.data_vars][0]
             yearly.append(float(ds[name].mean().values))
             ds.close()

@@ -57,7 +57,7 @@ CLEAN_DIR.mkdir(parents=True, exist_ok=True)
 # %%
 available = {}
 for window in climatedt.WINDOWS:
-    files = sorted(RAW_DIR.glob(f"tp_{window}_*.nc"))
+    files = sorted(RAW_DIR.glob(f"precip_{window}_*.nc"))
     if not files:
         raise FileNotFoundError(
             f"no raw files for window {window!r} in {RAW_DIR}. Run 01_data_download.py first."
@@ -87,17 +87,26 @@ if PROVENANCE != "destine-climate-dt":
 # tested in `tests/test_extremes.py`, including that a rolling window containing
 # a missing hour stays missing rather than being summed as zero.
 #
-# Units: the Climate DT delivers `tp` in **metres**, so everything is converted
-# to millimetres here, once, and every downstream number is in mm.
+# Units: the hourly Climate DT stream carries precipitation as `avg_tprate`, an
+# hourly-mean **rate** in kg m⁻² s⁻¹ — *not* an accumulation in metres. One
+# kg m⁻² of water is 1 mm depth and an hour is 3600 s, so the millimetres that
+# fell during an hour are `rate × 3600`. That conversion happens once, here, and
+# every downstream number is in mm.
+#
+# This is worth stating because the obvious guess is wrong in two ways at once:
+# the archive has no `tp` in this stream at all (`param=tp` and `param=228` are
+# both refused), and the field it does have is a rate, so a metres-to-millimetres
+# factor of 1000 would be wrong by 3.6× while still producing entirely
+# plausible-looking numbers.
 
 # %%
-M_TO_MM = 1000.0
+RATE_TO_MM = climatedt.RATE_TO_MM_PER_HOUR
 
 
 def annual_maxima_for_window(files: list[Path]) -> xr.Dataset:
     """(n_durations, n_years, n_cells) annual maxima in mm, with cell geometry."""
     ds = xr.open_mfdataset(files, combine="by_coords", chunks={"time": 24 * 90})
-    tp_mm = ds["tp"].transpose("time", "cell").values * M_TO_MM
+    tp_mm = ds[climatedt.PARAM_PRECIP].transpose("time", "cell").values * RATE_TO_MM
     years = ds["time"].dt.year.values
     blocks, stack = None, []
     for duration in climatedt.DURATIONS_H:

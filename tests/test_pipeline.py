@@ -35,9 +35,9 @@ def annual_maxima(tmp_path_factory) -> dict:
     synthetic_climatedt.write_all(raw)
     out = {}
     for window in climatedt.WINDOWS:
-        files = sorted(raw.glob(f"tp_{window}_*.nc"))
+        files = sorted(raw.glob(f"precip_{window}_*.nc"))
         ds = xr.open_mfdataset(files, combine="by_coords")
-        tp_mm = ds["tp"].transpose("time", "cell").values * 1000.0
+        tp_mm = ds[climatedt.PARAM_PRECIP].transpose("time", "cell").values * climatedt.RATE_TO_MM_PER_HOUR
         years = ds["time"].dt.year.values
         out[window] = {
             d: extremes.annual_maxima(tp_mm, years, d)[1] for d in climatedt.DURATIONS_H
@@ -49,20 +49,20 @@ def annual_maxima(tmp_path_factory) -> dict:
 def test_synthetic_writer_produces_the_schema_02_expects(tmp_path):
     paths = synthetic_climatedt.write_all(tmp_path)
     assert any(p.name == "warming_levels.json" for p in paths)
-    nc = sorted(tmp_path.glob("tp_hist_*.nc"))
+    nc = sorted(tmp_path.glob("precip_hist_*.nc"))
     assert len(nc) == synthetic_climatedt.N_YEARS
     with xr.open_dataset(nc[0]) as ds:
         assert set(ds.dims) == {"time", "cell"}
-        assert "tp" in ds.data_vars
+        assert climatedt.PARAM_PRECIP in ds.data_vars
         assert {"latitude", "longitude"} <= set(ds.coords)
-        assert ds["tp"].attrs["units"] == "m"
+        assert ds[climatedt.PARAM_PRECIP].attrs["units"] == climatedt.PRECIP_UNITS
         assert ds.attrs["provenance"] == "synthetic"
         assert ds.sizes["time"] in (8760, 8784)  # one calendar year, hourly
 
 
 def test_synthetic_data_is_stamped_so_it_cannot_be_mistaken_for_a_result(tmp_path):
     synthetic_climatedt.write_all(tmp_path)
-    with xr.open_dataset(sorted(tmp_path.glob("tp_*.nc"))[0]) as ds:
+    with xr.open_dataset(sorted(tmp_path.glob("precip_*.nc"))[0]) as ds:
         assert ds.attrs["provenance"] == "synthetic"
         assert "SYNTHETIC" in ds.attrs["warning"]
 
@@ -120,8 +120,8 @@ def test_no_intensification_gives_no_ordering(annual_maxima, tmp_path):
     for name, seed in (("a", 101), ("b", 202)):
         target = tmp_path / name
         synthetic_climatedt.write_window(target, "hist", seed=seed)
-        ds = xr.open_mfdataset(sorted(target.glob("tp_hist_*.nc")), combine="by_coords")
-        tp_mm = ds["tp"].transpose("time", "cell").values * 1000.0
+        ds = xr.open_mfdataset(sorted(target.glob("precip_hist_*.nc")), combine="by_coords")
+        tp_mm = ds[climatedt.PARAM_PRECIP].transpose("time", "cell").values * climatedt.RATE_TO_MM_PER_HOUR
         years = ds["time"].dt.year.values
         baseline_a[name] = {
             d: extremes.annual_maxima(tp_mm, years, d)[1] for d in climatedt.DURATIONS_H

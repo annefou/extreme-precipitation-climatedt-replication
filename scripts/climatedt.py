@@ -23,6 +23,7 @@ https://github.com/destination-earth-digital-twins/polytope-examples
 
 from __future__ import annotations
 
+import calendar
 import json
 import os
 from pathlib import Path
@@ -45,13 +46,31 @@ EXPVER = "0001"
 RESOLUTION_HIGH = "high"
 RESOLUTION_STANDARD = "standard"
 
-# MARS short name for total precipitation in the hourly (clte) surface stream.
-PARAM_TP = "tp"
+# Precipitation in the hourly (clte) surface stream is `avg_tprate`, NOT `tp`.
+# Verified live: `param=tp` and `param=228` are both refused with HTTP 400, and
+# the Climate DT README's CLTE table puts precipitation in the 20 "sfc (hourly
+# mean)" flux variables, which keep the `avg_` prefix. So what the archive
+# offers is an hourly-mean RATE, not an accumulation -- units kg m-2 s-1,
+# confirmed from the returned field's own metadata. Multiply by 3600 to get the
+# millimetres that fell in that hour (see RATE_TO_MM_PER_HOUR).
+PARAM_PRECIP = "avg_tprate"
+PRECIP_UNITS = "kg m**-2 s**-1"
+# An hourly-mean rate in kg m-2 s-1 is mm/s; one hour is 3600 s, and 1 kg m-2
+# of water is 1 mm depth.
+RATE_TO_MM_PER_HOUR = 3600.0
+
 # Monthly-mean 2 m temperature in the monthly (clmn) stream, used only to
 # express the change per degree of warming.
 PARAM_AVG_2T = "avg_2t"
 
-ALL_HOURS = "0000/to/2300/by/0100"
+# EVERY HOUR, ENUMERATED. Do not "simplify" this to "0000/to/2300/by/0100".
+# Feature-extraction requests accept the /to/../by/.. range syntax for `date`
+# but NOT for `time`: with a range, the service returns the FIRST hour only and
+# reports no error at all. Verified live -- an identical request returned 1
+# datetime with the range and 24 with this list. That silent 24x under-fetch
+# would have produced annual maxima computed from one hour per day, and a
+# pipeline that looked entirely healthy while doing it.
+ALL_HOURS = "/".join(f"{hour:02d}00" for hour in range(24))
 ALL_MONTHS = "1/2/3/4/5/6/7/8/9/10/11/12"
 
 # The two analysis windows. Both are 20 years so the two GEV fits rest on the
@@ -98,14 +117,26 @@ def polygon_provenance() -> dict:
     return {k: v for k, v in doc.items() if k != "ring"}
 
 
-def clte_polygon_request(window: str, year: int, param: str = PARAM_TP) -> dict:
-    """Hourly surface field for one calendar year, clipped to Germany server-side."""
+def clte_polygon_request(
+    window: str, year: int, month: int, param: str = PARAM_PRECIP
+) -> dict:
+    """Every hour of one calendar month, clipped to Germany server-side.
+
+    A month is the retrieval chunk. Timed live at `high` resolution over
+    Germany (8,697 cells): one day takes ~12 s on its own, a week ~4.4 s/day, a
+    month ~2.9 s/day -- so fewer, larger requests win, and a month is where the
+    curve flattens. That puts a 20-year window at roughly six hours, and keeps
+    each response near 300 MB rather than the ~3.6 GB a whole year would be.
+    """
     if window not in WINDOWS:
         raise KeyError(f"unknown window {window!r}; expected one of {sorted(WINDOWS)}")
+    if not 1 <= month <= 12:
+        raise ValueError(f"month must be 1-12, got {month}")
     spec = WINDOWS[window]
     first, last = spec["years"]
     if not first <= year <= last:
         raise ValueError(f"{year} is outside window {window} ({first}-{last})")
+    last_day = calendar.monthrange(year, month)[1]
     return {
         "activity": spec["activity"],
         "class": "d1",
@@ -120,7 +151,7 @@ def clte_polygon_request(window: str, year: int, param: str = PARAM_TP) -> dict:
         "type": "fc",
         "levtype": "sfc",
         "param": param,
-        "date": f"{year}0101/to/{year}1231",
+        "date": f"{year}{month:02d}01/to/{year}{month:02d}{last_day:02d}",
         "time": ALL_HOURS,
         "feature": {"type": "polygon", "shape": germany_polygon()},
     }
@@ -198,22 +229,66 @@ def have_credentials() -> bool:
     return credential_source() is not None
 
 
-def retrieve(request: dict, out_path: Path):
+def to_study_schema(ds, param: str = PARAM_PRECIP):
+    """Reshape a CoverageJSON-derived dataset into the (time, cell) form 02 reads.
+
+    Polytope's feature extraction hands back `datetimes` x `number` x `steps` x
+    `points`, with `latitude`/`longitude`/`levelist` along `points` and the
+    datetimes as STRINGS ("2030-01-02 00:00:00Z"). The rest of the pipeline
+    wants plain (time, cell) with a real datetime index, so the rename happens
+    once, here, rather than in every notebook that touches the data.
+
+    `number` (ensemble member), `steps` and `levelist` are all length 1 for a
+    single-realization surface field; they are dropped rather than squeezed
+    blindly, so a future multi-member request fails loudly instead of silently
+    collapsing members together.
+    """
+    import numpy as np
+    import pandas as pd
+
+    for name, size in (("number", 1), ("steps", 1)):
+        if ds.sizes.get(name, 1) != size:
+            raise ValueError(
+                f"expected {name} to have length 1, got {ds.sizes[name]}; this "
+                "reshaping would silently collapse it"
+            )
+    out = ds[[param]]
+    for name in ("number", "steps"):
+        if name in out.dims:
+            out = out.isel({name: 0}, drop=True)
+    for name in ("levelist", "number", "steps"):
+        if name in out.coords:
+            out = out.drop_vars(name)
+
+    times = pd.to_datetime([str(t) for t in np.ravel(ds["datetimes"].values)], utc=True)
+    out = out.rename({"datetimes": "time", "points": "cell"})
+    out = out.assign_coords(
+        time=times.tz_localize(None),
+        cell=np.arange(out.sizes["cell"], dtype="int32"),
+    )
+    return out.transpose("time", "cell")
+
+
+def retrieve(request: dict):
     """Run one Polytope request and return the earthkit source.
 
     Imported lazily: earthkit/polytope are only needed on the machine that has
     DestinE credentials, and the rest of the pipeline must import this module
     without them.
+
+    Returns the source rather than writing a file. The obvious
+    `data.to_target("file", path)` — which the official examples use for GRIB —
+    raises `TypeError: a bytes-like object is required, not 'str'` on the
+    CoverageJSON a feature-extraction request returns. Callers convert with
+    `.to_xarray()` and write NetCDF, which is the archival format this study
+    wants anyway (DOMAIN.md § Data formats).
     """
     import earthkit.data
 
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    data = earthkit.data.from_source(
+    return earthkit.data.from_source(
         "polytope",
         POLYTOPE_COLLECTION,
         request,
         address=POLYTOPE_ADDRESS,
         stream=False,
     )
-    data.to_target("file", str(out_path))
-    return data

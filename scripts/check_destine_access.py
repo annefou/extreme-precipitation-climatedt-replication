@@ -12,10 +12,14 @@ they fail differently and the fix is different:
      collection and to generation-2 Climate DT? An account can authenticate
      perfectly and still be refused the data.
 
-The probe is deliberately the cheapest request the archive can answer: one
-variable, one hour, one day, one point, at `standard` resolution. It proves the
-path end to end without pulling anything. If it succeeds, the real retrieval in
-notebooks/01_data_download.py differs only in scale.
+  3. **The request itself** -- are the keys right? An authenticated, entitled
+     account still gets HTTP 400 for `param=tp`, because the hourly stream
+     carries precipitation as `avg_tprate`.
+
+The probe is the pipeline's own request shrunk to one hour of one day at
+`standard` resolution: same collection, same feature type, same domain, same
+parameter. A probe that exercises a different request shape would prove the
+credential and nothing else.
 """
 
 from __future__ import annotations
@@ -30,36 +34,26 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import climatedt  # noqa: E402
 
-# Somewhere in the study domain, so a success also confirms the domain is
-# covered by the archive.
-PROBE_POINT = (51.05, 13.74)  # Dresden
-
-
 def probe_request() -> dict:
-    """One hour, one day, one point -- the smallest thing worth asking for."""
+    """The pipeline's own request, shrunk to one hour of one day.
+
+    Deliberately the SAME feature type and domain as
+    `climatedt.clte_polygon_request` -- a probe that exercises a different
+    request shape proves the credential and nothing else. The first draft used
+    a `timeseries` feature and was refused with 400 'The datacube does not
+    contain a date axis', because a timeseries over a single date has no axis
+    to run along. That was the probe's bug, not the archive's, and it is why
+    this now mirrors what 01_data_download.py actually sends.
+
+    Coarsened to `standard` resolution and a single hour so it costs almost
+    nothing; everything else is identical.
+    """
     first_year = climatedt.WINDOWS["ssp370"]["years"][0]
-    return {
-        "activity": "projections",
-        "class": "d1",
-        "dataset": "climate-dt",
-        "experiment": "SSP3-7.0",
-        "generation": climatedt.GENERATION,
-        "expver": climatedt.EXPVER,
-        "model": climatedt.MODEL,
-        "realization": climatedt.REALIZATION,
-        "resolution": climatedt.RESOLUTION_STANDARD,
-        "stream": "clte",
-        "type": "fc",
-        "levtype": "sfc",
-        "param": climatedt.PARAM_TP,
-        "date": f"{first_year}0102",
-        "time": "0000",
-        "feature": {
-            "type": "timeseries",
-            "points": [[PROBE_POINT[0], PROBE_POINT[1]]],
-            "time_axis": "date",
-        },
-    }
+    request = climatedt.clte_polygon_request("ssp370", first_year, 1)
+    request["resolution"] = climatedt.RESOLUTION_STANDARD
+    request["date"] = f"{first_year}0102"
+    request["time"] = "0000"
+    return request
 
 
 def describe_key() -> str:
@@ -137,10 +131,8 @@ def main() -> int:
     request = probe_request()
     print(f"  endpoint: {climatedt.POLYTOPE_ADDRESS}")
     print(f"  {ffmt(request)}")
-    out = Path("data/raw/_access_probe.covjson")
     try:
-        data = climatedt.retrieve(request, out)
-        ds = data.to_xarray()
+        ds = climatedt.to_study_schema(climatedt.retrieve(request).to_xarray())
     except Exception as exc:
         # polytope-client logs the server's own message to stderr before
         # raising, so print ours to stderr too — otherwise the two halves of the
@@ -169,14 +161,24 @@ def main() -> int:
         )
         return 1
 
+    import numpy as np
+
+    mm_per_hour = np.asarray(
+        ds[climatedt.PARAM_PRECIP].values, dtype=float
+    ) * climatedt.RATE_TO_MM_PER_HOUR
     print("\n  SUCCESS. Returned:")
     print(f"    variables: {list(ds.data_vars)}")
     print(f"    dims     : {dict(ds.sizes)}")
+    print(f"    cells in the Germany polygon: {ds.sizes['cell']}")
     print(
-        "\n  Authentication AND authorisation are both fine. "
-        "notebooks/01_data_download.py will retrieve for real."
+        f"    precipitation: max {np.nanmax(mm_per_hour):.2f} mm/h, "
+        f"mean {np.nanmean(mm_per_hour):.4f} mm/h"
     )
-    out.unlink(missing_ok=True)
+    print(
+        "\n  Authentication AND authorisation are both fine, the request keys are\n"
+        "  right, and the rate-to-millimetres conversion gives physical numbers.\n"
+        "  notebooks/01_data_download.py will retrieve for real."
+    )
     return 0
 
 

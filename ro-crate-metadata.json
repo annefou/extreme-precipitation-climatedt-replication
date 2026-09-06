@@ -16,7 +16,7 @@
       "@type": ["Dataset", "ResearchObject"],
       "name": "extreme-precipitation-climatedt-replication",
       "description": "Replication of Hundhausen et al. (2024) extreme-precipitation return-level scaling over Germany using Destination Earth Climate DT km-scale hourly data on HEALPix",
-      "datePublished": "{{RELEASE_DATE}}",
+      "datePublished": "2026-09-06",
       "license": { "@id": "https://spdx.org/licenses/MIT" },
       "publisher": { "@id": "https://orcid.org/0000-0002-1784-2920" },
       "author": [{ "@id": "https://orcid.org/0000-0002-1784-2920" }],

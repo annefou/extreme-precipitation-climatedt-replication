@@ -110,15 +110,32 @@ jobs:
           # legitimately document the token system, and grepping them is what
           # used to cause false-positive skips and silent-green CI
           # (see .github/actions/check-ready).
+          #
+          # DEFERRED tokens are exempt. scripts/init_template.py declares
+          # ZENODO_DOI / ZENODO_VERSION_DOI / SWHID as values that do not exist
+          # until the first release ("minted at release and recorded by
+          # release-identifiers.yml"), and deliberately leaves them in place;
+          # set_release_identifiers.py substitutes them in Phase 4. Flagging
+          # them here contradicted that contract and failed this job on EVERY
+          # repo generated from the template, from initialisation until its
+          # first release — i.e. the check cried wolf for the whole life of a
+          # study. Keep this list in sync with init_template.py's
+          # DEFERRED_TOKENS.
+          DEFERRED_RE='^\{\{(ZENODO_DOI|ZENODO_VERSION_DOI|SWHID)\}\}$'
           if [ -f .template-uninitialised ]; then
             note "skipped — template not initialised yet (sentinel present)"
           else
             for f in CITATION.cff codemeta.json myst.yml pixi.toml Dockerfile ro-crate-metadata.json; do
               [ -f "$f" ] || continue
-              if grep -nE "\{\{[A-Z_]+\}\}" "$f"; then
+              # -o so a line carrying both a deferred and a real token still
+              # reports the real one; sort -u so a token repeated in a file is
+              # named once.
+              leftover=$(grep -oE "\{\{[A-Z_]+\}\}" "$f" | sort -u | grep -vE "$DEFERRED_RE" || true)
+              if [ -n "$leftover" ]; then
+                echo "$leftover" | sed "s|^|  $f: |"
                 bad "$f still contains unsubstituted {{...}} placeholder tokens (see the hits above). A release would ship these into Zenodo, Software Heritage and the RO-Crate permanently. Re-run the substitution or fix by hand — CLAUDE.md § Phase 0."
               else
-                note "$f has no leftover tokens"
+                note "$f has no leftover tokens (release-deferred ones exempt)"
               fi
             done
           fi

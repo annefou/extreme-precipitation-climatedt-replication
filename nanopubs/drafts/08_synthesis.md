@@ -66,7 +66,7 @@ What was not tested? What might not generalise?
 ### Completion date (text input, required)
 
 ```
-{{RELEASE_DATE}}
+2026-09-06
 ```
 
 <!-- field: source -->

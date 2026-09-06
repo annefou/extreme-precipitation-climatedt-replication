@@ -56,7 +56,7 @@ SOURCES = [
         "doi": "<10.x/y or null>",
         "url": "<https://...>",
         "license": "<CC-BY-4.0 / CC-BY-NC-4.0 / public-domain / ...>",
-        "accessed_on": "{{RELEASE_DATE}}",
+        "accessed_on": "2026-09-06",
         "sha256": None,  # filled after first download
     },
     # Add more sources here as needed.

@@ -20,6 +20,8 @@ notebooks/01_data_download.py differs only in scale.
 
 from __future__ import annotations
 
+import json
+import os
 import sys
 import traceback
 from pathlib import Path
@@ -60,6 +62,54 @@ def probe_request() -> dict:
     }
 
 
+def describe_key() -> str:
+    """Guess which KIND of credential is present, without printing it.
+
+    DestinE issues two things people both call "an API key", and they are for
+    different services:
+
+      * a **DESP offline token** -- minted from a DESP username/password by
+        `desp-authentication.py` against auth.destine.eu (realm `desp`, client
+        `polytope-api-public`). Long, usually a JWT. This is what Polytope
+        wants, and it goes into ~/.polytopeapirc alone.
+      * a **DEDL API key** -- an OAuth2 *client-credentials pair* (client id +
+        secret) generated in "My DataLake Services". The secret is short and
+        opaque. It is issued for the DEDL realm with audience `hda-public`, so
+        it authenticates the **HDA** API, not Polytope -- and it must be
+        EXCHANGED for an access token first
+        (`destinelab.DEDLServiceAccountAuth(...).get_token()`). A raw client
+        secret can never work as a bearer token, which is exactly the 401 you
+        get for pasting one in here.
+
+    Length is only a hint, so this reports a suspicion, never a verdict -- the
+    live request below is the verdict.
+    """
+    key_path = Path(os.environ.get("POLYTOPE_KEY_PATH") or Path.home() / ".polytopeapirc")
+    if os.environ.get("POLYTOPE_USER_KEY"):
+        key, email = os.environ["POLYTOPE_USER_KEY"], os.environ.get("POLYTOPE_USER_EMAIL")
+    elif key_path.exists():
+        info = json.loads(key_path.read_text())
+        key, email = info.get("user_key", ""), info.get("user_email")
+    else:
+        ecmwf = json.loads((Path.home() / ".ecmwfapirc").read_text())
+        key, email = ecmwf.get("key", ""), ecmwf.get("email")
+
+    how = f"EmailKey {email}:<key>" if key and email else "Bearer <key>"
+    note = f"  {len(key)} characters, sent as `{how}`"
+    if email:
+        return note + "\n  paired with an email, so this is the ECMWF-API-key style."
+    if key.count(".") == 2 or len(key) > 200:
+        return note + "\n  long/JWT-shaped: consistent with a DESP offline token. Good."
+    return (
+        note
+        + "\n  SHORT and opaque. That is the shape of a DEDL API key's client SECRET,"
+        "\n  which belongs to the HDA API, not Polytope -- and which has to be"
+        "\n  exchanged for an access token before it is a bearer credential at all."
+        "\n  Polytope wants the DESP offline token from `desp-authentication.py`."
+        "\n  If the live request below returns 401, that is almost certainly why."
+    )
+
+
 def main() -> int:
     print("--- 1. credential discovery ---")
     source = climatedt.credential_source()
@@ -72,6 +122,7 @@ def main() -> int:
         print("  A DESP key goes in the second file, alone -- it is a bearer token.")
         return 1
     print(f"  found: {source}")
+    print(describe_key())
 
     print("\n--- 2. client import ---")
     try:

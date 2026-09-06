@@ -60,13 +60,38 @@
 #    `{"key": "...", "email": "..."}`.
 #
 # A key on its own is sent as `Bearer <key>`; a key paired with an email is sent
-# as `EmailKey <email>:<key>`. Both are valid. A **DESP API key / token** is the
-# first kind — write it alone into `~/.polytopeapirc`, which is exactly what
-# `desp-authentication.py` does after an interactive login. An **ECMWF API key**
-# is the second kind and needs the email alongside it.
+# as `EmailKey <email>:<key>`. Both are valid.
 #
-# - **Where to get one:** a Destination Earth Service Platform account,
-#   <https://platform.destine.eu/>.
+# ### Two different things are called "a DestinE API key"
+#
+# This is the trap, and it costs a confusing 401:
+#
+# | | **DESP offline token** | **DEDL API key** |
+# |---|---|---|
+# | Where from | `desp-authentication.py -u <user> -p <pass>` | "My DataLake Services" |
+# | Shape | one long string, usually a JWT | a **pair**: client id + short opaque secret |
+# | Issuer | `auth.destine.eu`, realm `desp`, client `polytope-api-public` | `identity.data.destination-earth.eu`, realm `dedl`, audience `hda-public` |
+# | Authenticates | **Polytope** | **HDA** (Harmonised Data Access) |
+# | Used directly? | yes — it *is* the bearer token | no — exchange it first via `destinelab.DEDLServiceAccountAuth(...).get_token()` |
+#
+# So a DEDL API key pasted into `~/.polytopeapirc` as `user_key` returns
+# **401 authentication failed**: it is scoped to a different service, and a raw
+# client secret is not a bearer token until it has been exchanged. `destinelab`
+# has no DESP service-account path at all — `DESPAuth` is username/password only
+# — so there is no route from a DEDL API key to Polytope.
+#
+# To get the credential this notebook needs:
+#
+# ```bash
+# pip install --upgrade polytope-client lxml conflator
+# curl -sO https://raw.githubusercontent.com/destination-earth-digital-twins/polytope-examples/main/desp-authentication.py
+# python desp-authentication.py          # prompts for DESP username + password
+# ```
+#
+# It writes `{"user_key": "<offline token>"}` to `~/.polytopeapirc`. Then
+# `pixi run check-destine` proves the whole path with one tiny request.
+#
+# - **Where to get an account:** <https://platform.destine.eu/>.
 # - **Authentication is not authorisation.** The account also needs the
 #   Destination Earth Data Lake entitlement for the `destination-earth`
 #   collection. A key that authenticates can still be refused the data, so a

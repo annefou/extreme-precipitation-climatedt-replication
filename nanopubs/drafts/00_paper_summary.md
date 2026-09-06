@@ -2,13 +2,13 @@
 
 > This is a working scratchpad for the paper-analysis phase. The output of this file feeds the Quote / AIDA / Claim drafts. It is not itself a nanopub.
 
-**Reference paper:** {{PAPER_TITLE}}
+**Reference paper:** Climate change signals of extreme precipitation return levels for Germany in a transient convection-permitting simulation ensemble
 
-**DOI:** {{PAPER_DOI}}
+**DOI:** 10.1002/joc.8393
 
 **Authors:** _add._
 
-**Year:** {{PAPER_YEAR}}
+**Year:** 2024
 
 ## Headline claim
 

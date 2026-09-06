@@ -61,3 +61,6 @@ docker-image.tar.gz
 # Claude scratch
 .claude/.cache/
 .claude/local/
+
+# Local scratch — a Claude Code session-resume helper, never part of a study.
+claude-resume.txt

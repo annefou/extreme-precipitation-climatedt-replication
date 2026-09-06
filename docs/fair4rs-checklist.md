@@ -40,7 +40,7 @@ Run through this checklist before each release. A "✓" requires both: (a) the a
 |---|---|
 | `CITATION.cff` | `doi` and `identifiers` fields name the Zenodo DOI. |
 | `codemeta.json` | `identifier` and `@id` fields. |
-| FORRT Outcome's `Repository URL` field | Points to `https://github.com/{{REPO_ORG}}/{{REPO_NAME}}`. |
+| FORRT Outcome's `Repository URL` field | Points to `https://github.com/annefou/extreme-precipitation-climatedt-replication`. |
 
 ### F4 — Metadata are FAIR, searchable, and indexable
 
@@ -60,7 +60,7 @@ Run through this checklist before each release. A "✓" requires both: (a) the a
 |---|---|
 | Zenodo DOI resolves via HTTPS | DOI proxy (`https://doi.org/...`) is universally implemented. |
 | GitHub HTTPS / SSH | clone via standard protocols. |
-| GHCR Docker pull | `docker pull ghcr.io/{{REPO_ORG}}/{{REPO_NAME}}:latest` over HTTPS. |
+| GHCR Docker pull | `docker pull ghcr.io/annefou/extreme-precipitation-climatedt-replication:latest` over HTTPS. |
 
 ### A1.1 — Protocol is open, free, and universally implementable
 
@@ -167,7 +167,7 @@ Run this list before cutting any GitHub release:
 - [ ] If this is the first release: `CITATION.cff` `doi` field is left as `{{ZENODO_DOI}}` (the integration mints it on release; update afterwards).
 - [ ] If this is a subsequent release: `CITATION.cff` `doi` field carries the concept DOI from the first release.
 - [ ] FORRT chain (if any) is published; URIs are listed in `nanopubs/PUBLISHED.md` and embedded in the Jupyter Book.
-- [ ] Docker image builds and runs the snakemake target via `docker run --rm ghcr.io/{{REPO_ORG}}/{{REPO_NAME}}:latest`.
+- [ ] Docker image builds and runs the snakemake target via `docker run --rm ghcr.io/annefou/extreme-precipitation-climatedt-replication:latest`.
 
 If any item is unchecked, the release is not FAIR4RS-conformant and should not ship.
 

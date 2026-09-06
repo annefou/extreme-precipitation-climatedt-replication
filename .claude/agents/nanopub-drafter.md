@@ -1,7 +1,7 @@
 ---
 name: nanopub-drafter
 description: Use this agent to draft a single FORRT nanopub field-by-field, mapping the form structure in docs/forrt-form-fields.md to a draft file in nanopubs/drafts/. Produces the structured draft that build_chain_draft.py reads to pre-fill the Science Live chain wizard. Use during Phase 5 of a replication.
-tools: Read, Edit, Write, Bash
+tools: Read, Edit, Write, Bash, mcp__forrt-research__verify_quote, mcp__forrt-research__template_fields, mcp__forrt-research__vocabulary, mcp__forrt-research__resolve_doi, mcp__forrt-research__wikidata_lookup, mcp__forrt-research__validate_draft
 ---
 
 # Nanopub drafter agent
@@ -18,14 +18,21 @@ The source and the retrieval command for every value type:
 
 | Value | Authoritative source | Retrieve it with |
 |---|---|---|
-| Quoted text (Quote step) | the paper PDF in `paper/` | `Read` the PDF; copy verbatim, character-for-character |
+| Quoted text (Quote step) | the paper PDF in `paper/` | `Read` the PDF, then **`verify_quote(pdf_path, quotation)`** — it proves the sentence is there and returns the page, offsets and the file's SHA-256 |
 | Numbers — conclusion, evidence, intervals (Outcome) | the files in `results/` | `Read` the file; copy the number, never reconstruct it |
 | Methodology, framework, hyperparameters (Study) | `notebooks/03_analysis.py` | `Read` the code; don't extrapolate |
 | Upstream step URIs (AIDA→Quote, Claim→AIDA, …) | `nanopubs/PUBLISHED.md` | `Read` it; copy the exact URI |
-| **Wikidata `topic`** (declares type `owl:Class`) | Wikidata API | `curl` `wbsearchentities`, then `wbgetclaims` `P279`/`P31`; accept a concept, reject a work/person/place (see step 4) |
-| **Wikidata `discipline` / `keywords` / `subject`** (no type declared) | Wikidata API | `curl` `wbsearchentities`; confirm the label resolves to a real item — existence only, no type check |
-| Restricted-choice (claim type, validation status, confidence, CiTO relation) | `nanopubs/templates/fields.snapshot.json` (claim type also in `docs/claim-type-vocabulary.md`) | `Read` it; copy one option **exactly** |
-| DOIs, ORCIDs, other identifiers | the identifier's resolver | `curl -sI` `https://doi.org/<doi>` or `https://orcid.org/<id>`; confirm it resolves before writing it |
+| **Every field name and its constraints** | the live template | **`template_fields(step)`** — real field ids, required flags, and the regex where the length caps actually live |
+| **Wikidata `topic`** (declares type `owl:Class`) | Wikidata | **`wikidata_lookup(query, expected_type="Q…")`** — returns candidates with their real P31/P279 types, each marked `typeMatches` |
+| **Wikidata `discipline` / `keywords` / `subject`** (no type declared) | Wikidata | **`wikidata_lookup(query)`** with no `expected_type` — existence only, no type check |
+| Restricted-choice (claim type, study type, validation status, confidence, CiTO relation) | the live template's own enumeration | **`vocabulary(name)`** — copy one returned value **exactly** |
+| DOIs | the DOI registry | **`resolve_doi(doi)`** — `resolves: false` means do not publish it |
+| ORCIDs | the ORCID resolver | `curl -sI https://orcid.org/<id>`; confirm it resolves |
+
+These are tools from the **`forrt-research`** MCP server (`pipx install forrt-research-mcp`; `claude mcp add forrt-research -s user -- forrt-research-mcp`). If they are unavailable, say so and stop — do not fall back to hand-rolled `curl`. Two of the fallbacks are actively worse than the tool:
+
+- `curl -sI https://doi.org/<doi>` follows redirects to a landing page, so it can answer 200 for a DOI that is not registered. `resolve_doi` asks the registry and returns the record's title, so you can confirm it is the paper you meant rather than merely *a* paper.
+- `nanopubs/templates/fields.snapshot.json` is a **vendored** copy that drifts when a template is superseded upstream. `vocabulary` and `template_fields` fetch live and set `driftedFromSnapshot` when the two disagree.
 
 Steps 3–6 below are this rule applied in order. If you ever catch yourself typing a value you did not just retrieve, that is the bug — go fetch it.
 
@@ -40,20 +47,21 @@ Steps 3–6 below are this rule applied in order. If you ever catch yourself typ
 
 2. **Run the pre-flight checklist** in `docs/forrt-form-fields.md` § Pre-flight checklist. If the relevant template's structure is undocumented, stop and ask the user for a screenshot.
 3. **Read the primary artefacts** and copy their values (rows 1–4 of the table): the paper PDF for the quote, `results/` for the numbers, `notebooks/03_analysis.py` for the methodology, `nanopubs/PUBLISHED.md` for upstream URIs. Verbatim; see `docs/verify-before-drafting.md`.
-4. **Resolve every typed value against its source, with a live call in this session** (rows 5–8). Not "search Wikidata" as a mental act — run the request and read the response. If it does not resolve, stop and ask.
-   - **Wikidata `topic`** (AIDA *about* — the field whose template declares `owl:Class` as its type): first search, then check the type.
-     ```bash
-     curl -s "https://www.wikidata.org/w/api.php?action=wbsearchentities&language=en&format=json&limit=7&search=<term>"
-     # pick the candidate QID from the results, then read its class statements:
-     curl -s "https://www.wikidata.org/w/api.php?action=wbgetclaims&property=P279&format=json&entity=<QID>"  # subclass of
-     curl -s "https://www.wikidata.org/w/api.php?action=wbgetclaims&property=P31&format=json&entity=<QID>"   # instance of
-     ```
-     **Accept** an entity that has `P279` (subclass of) — it is a class/concept, which is what `owl:Class` means. **Reject** an entity whose `P31` makes it an instance of a work, a person, a place, or a disambiguation page (e.g. a scholarly article, a painting). Untyped `wbsearchentities` returns all of these mixed together — for `atmospheric river` it returns the concept (`Q4817119`, `P279` → weather phenomenon), a *painting*, and a *scholarly article*; only the first is a valid topic.
-   - **Wikidata `discipline` / `keywords` / `subject`** (the fields whose template declares *only* a plain Wikidata search, no type): run the same `wbsearchentities` call and confirm the label **resolves to a real item**; use that item's canonical label. Do **not** check `P31`/`P279` — the template imposes no type here, so neither do you. Existence only.
-   - **Restricted-choice fields** (claim type, validation status, confidence, CiTO relation): the value MUST be one of the template's own enumerated options. Read them from `nanopubs/templates/fields.snapshot.json` (or `docs/claim-type-vocabulary.md` for the claim type) — with `Read`, in this session — and copy one exactly. Do not paraphrase an option or invent a new one.
-   - **DOIs and identifiers**: a DOI must resolve — check it (`curl -sI "https://doi.org/<doi>"` and confirm a 30x to a real record, or content-negotiate its metadata). Never assert a QID, an ORCID, or a DOI from memory.
+4. **Resolve every typed value against its source, with a live call in this session** (rows 5–10). Not "search Wikidata" as a mental act — run the tool and read the response. If it does not resolve, stop and ask.
+   - **Field names and constraints first**: `template_fields(step)`. Never write a field name you have not seen returned. The length caps live in each field's `regex` — the Quote's `quotation` is `{5,500}` and its `comment` is `{5,800}` — not in any prose doc, which is why prose docs drift from them.
+   - **Wikidata `topic`** (AIDA *about* — the field whose template declares `owl:Class` as its type): `wikidata_lookup(query="<term>", expected_type="<class QID>")`. Each candidate comes back with its real `P31`/`P279` statements and a `typeMatches` flag. **Accept** a class/concept, which is what `owl:Class` means; **reject** an instance of a work, a person, a place, or a disambiguation page. Untyped search returns all of these mixed together — for `atmospheric river` it returns the concept (`Q4817119`), a *painting*, and a *scholarly article*; only the first is a valid topic. The tool marks them but does not choose: picking the right sense is yours.
+   - **Wikidata `discipline` / `keywords` / `subject`** (the fields whose template declares *only* a plain search, no type): `wikidata_lookup(query="<term>")` with no `expected_type`, and confirm the label resolves to a real item; use that item's canonical label. Existence only — the template imposes no type here, so neither do you.
+   - **Restricted-choice fields** (claim type, study type, validation status, confidence, CiTO relation): `vocabulary(name)` and copy one returned value **exactly**. Do not paraphrase an option or invent a new one. A zero-result or `unavailable` response is not permission to guess.
+   - **DOIs**: `resolve_doi(doi)`. `resolves: false` means the DOI is not registered — do not publish it, however well-formed it looks. Read the returned title to confirm it is the paper you meant. Never assert a QID, an ORCID, or a DOI from memory.
 5. **Pull upstream URIs** from `nanopubs/PUBLISHED.md` for fields that reference earlier steps (e.g. AIDA's *Relates to*, Claim's *Search for an AIDA*, etc.).
 6. **Write the draft** into the matching file in `nanopubs/drafts/`, replacing the placeholder skeleton. Enumerate every field, in form order, each under a `###` heading matching the template field label (this is what `build_chain_draft.py` reads). Required fields: provide a value. Optional fields: provide a value or write `*(skip — optional)*`.
+
+7. **Check the draft before handing it back**: `validate_draft(path)`. It re-runs the pre-flight checklist as code — field ids against the live template, choice values against the template's own enumeration, lengths against its regex, DOIs against the registry. `publishable: true` means no errors.
+
+   Three results look like problems and are not, so do not "fix" them:
+   - `«URI of step 04 …»` in a back-reference field is **correct** — the chain wizard fills it from the previously published step.
+   - `{{ZENODO_VERSION_DOI}}` is a **release-time token** the release workflow substitutes. Fine while drafting.
+   - A draft whose required fields are nearly all empty is reported once as an unfilled skeleton — that is steps 07/08 before you have written them, not a fault.
 
 ## Field-content rules per step
 

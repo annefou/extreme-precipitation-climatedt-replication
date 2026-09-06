@@ -149,6 +149,13 @@ be silently empty in the published chain otherwise.
 
 ```bash
 pixi run build-chain-draft        # drafts + CITATION.cff + templates -> nanopubs/chain-draft.json
+```
+
+Then **check the artefact before anyone signs it** — `validate_chain_draft("nanopubs/chain-draft.json")` from the `forrt-research` MCP server. `chain-draft.json`, not the markdown, is what the wizard pre-fills each step from, so it is what a human reviews and publishes. `readyForWizard: true` means no errors. It is the only thing that catches a **superseded `template_uri`** — invisible in the file, but it makes the wizard pre-fill the *old* form; the fix is to re-run `build-chain-draft`. It also catches a prefill key the wizard would silently drop, a complex field in the wrong shape (`06_citation.st02` must be `[{cites, cited}]` with at least one entry; `04_study.disciplineSelection` is a single object, **not** an array), a value over the template's own cap, an unresolved `{{TOKEN}}`, and a DOI that does not resolve.
+
+Fields the wizard fills itself are exempt and are *not* reported missing: `02_aida` has no `project`, `03_claim` no `aida`, `04_study` no `claim`.
+
+```bash
 git add nanopubs/chain-draft.json && git commit -m "Add chain draft" && git push
 ```
 

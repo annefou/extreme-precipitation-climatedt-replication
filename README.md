@@ -1,18 +1,18 @@
-# {{REPO_NAME}}
+# extreme-precipitation-climatedt-replication
 
-[![CI](https://github.com/{{REPO_ORG}}/{{REPO_NAME}}/actions/workflows/ci.yml/badge.svg)](https://github.com/{{REPO_ORG}}/{{REPO_NAME}}/actions/workflows/ci.yml)
-[![Jupyter Book](https://github.com/{{REPO_ORG}}/{{REPO_NAME}}/actions/workflows/jupyter-book.yml/badge.svg)](https://{{REPO_ORG}}.github.io/{{REPO_NAME}}/)
-[![Docker](https://github.com/{{REPO_ORG}}/{{REPO_NAME}}/actions/workflows/docker.yml/badge.svg)](https://github.com/{{REPO_ORG}}/{{REPO_NAME}}/pkgs/container/{{REPO_NAME}})
+[![CI](https://github.com/annefou/extreme-precipitation-climatedt-replication/actions/workflows/ci.yml/badge.svg)](https://github.com/annefou/extreme-precipitation-climatedt-replication/actions/workflows/ci.yml)
+[![Jupyter Book](https://github.com/annefou/extreme-precipitation-climatedt-replication/actions/workflows/jupyter-book.yml/badge.svg)](https://annefou.github.io/extreme-precipitation-climatedt-replication/)
+[![Docker](https://github.com/annefou/extreme-precipitation-climatedt-replication/actions/workflows/docker.yml/badge.svg)](https://github.com/annefou/extreme-precipitation-climatedt-replication/pkgs/container/extreme-precipitation-climatedt-replication)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/{{ZENODO_DOI}}.svg)]({{ZENODO_DOI}})
 [![FAIR4RS](https://img.shields.io/badge/FAIR4RS-conformant-brightgreen)](docs/fair4rs-checklist.md)
 [![FORRT](https://img.shields.io/badge/FORRT-replication-blue)](https://forrt.org/)
 [![Science Live](https://img.shields.io/badge/Science%20Live-nanopub%20chain-purple)](nanopubs/PUBLISHED.md)
 [![RO-Crate](https://img.shields.io/badge/RO--Crate-1.2-orange)](ro-crate-metadata.json)
-[![Software Heritage](https://archive.softwareheritage.org/badge/origin/https://github.com/{{REPO_ORG}}/{{REPO_NAME}}/)](https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/{{REPO_ORG}}/{{REPO_NAME}})
+[![Software Heritage](https://archive.softwareheritage.org/badge/origin/https://github.com/annefou/extreme-precipitation-climatedt-replication/)](https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/annefou/extreme-precipitation-climatedt-replication)
 
-> **{{PAPER_TITLE}}** — replication study.
-> Reference paper: [{{PAPER_DOI}}](https://doi.org/{{PAPER_DOI}})
+> **Climate change signals of extreme precipitation return levels for Germany in a transient convection-permitting simulation ensemble** — replication study.
+> Reference paper: [10.1002/joc.8393](https://doi.org/10.1002/joc.8393)
 
 This is a self-contained replication of the headline claim of the reference paper. It produces a reproducible computational pipeline, a Zenodo-archived release with a citable DOI, and a FORRT-tagged nanopublication chain on the [Science Live platform](https://platform.sciencelive4all.org).
 
@@ -21,8 +21,8 @@ This is a self-contained replication of the headline claim of the reference pape
 ## Quick start
 
 ```bash
-git clone https://github.com/{{REPO_ORG}}/{{REPO_NAME}}.git
-cd {{REPO_NAME}}
+git clone https://github.com/annefou/extreme-precipitation-climatedt-replication.git
+cd extreme-precipitation-climatedt-replication
 pixi install
 pixi run snakemake --cores 1
 ```
@@ -32,10 +32,10 @@ pixi run snakemake --cores 1
 Or with Docker:
 
 ```bash
-docker run --rm ghcr.io/{{REPO_ORG}}/{{REPO_NAME}}:latest
+docker run --rm ghcr.io/annefou/extreme-precipitation-climatedt-replication:latest
 ```
 
-The Jupyter Book version is at <https://{{REPO_ORG}}.github.io/{{REPO_NAME}}/>.
+The Jupyter Book version is at <https://annefou.github.io/extreme-precipitation-climatedt-replication/>.
 
 ## Built from a template
 
@@ -117,7 +117,7 @@ For lower-level nanopub work — retraction, superseding, batch publishing — s
 If you use this work, please cite both:
 
 - This software: [`CITATION.cff`](CITATION.cff) → DOI [{{ZENODO_DOI}}]({{ZENODO_DOI}})
-- The original paper: [{{PAPER_DOI}}](https://doi.org/{{PAPER_DOI}})
+- The original paper: [10.1002/joc.8393](https://doi.org/10.1002/joc.8393)
 
 ## Acknowledgements
 

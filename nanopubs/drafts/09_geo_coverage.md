@@ -39,7 +39,7 @@ If unsure, prefer separate nanopubs — atomic coverage is easier to search and 
 The **original paper's** DOI (bare, starting `10.` — the form prepends `https://doi.org/`). Same DOI as the Quote (step 01) / CiTO (step 06). Read it from `CITATION.cff` `references:`; do not recall it.
 
 ```
-{{PAPER_DOI}}
+10.1002/joc.8393
 ```
 
 ---

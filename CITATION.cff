@@ -1,13 +1,13 @@
 cff-version: 1.2.0
-title: "{{REPO_NAME}}"
+title: "extreme-precipitation-climatedt-replication"
 message: "If you use this software, please cite it as below."
 type: software
 authors:
-  - family-names: "{{AUTHOR_FAMILY}}"
-    given-names: "{{AUTHOR_GIVEN}}"
-    orcid: "{{AUTHOR_ORCID}}"
-    affiliation: "{{AUTHOR_AFFILIATION}}"
-repository-code: "https://github.com/{{REPO_ORG}}/{{REPO_NAME}}"
+  - family-names: "Fouilloux"
+    given-names: "Anne"
+    orcid: "https://orcid.org/0000-0002-1784-2920"
+    affiliation: "LifeWatch ERIC"
+repository-code: "https://github.com/annefou/extreme-precipitation-climatedt-replication"
 license: MIT
 version: "0.1.0"
 date-released: "{{RELEASE_DATE}}"
@@ -39,22 +39,9 @@ keywords:
   - Science-Live
 references:
   - type: article
-    title: "{{PAPER_TITLE}}"
+    title: "Climate change signals of extreme precipitation return levels for Germany in a transient convection-permitting simulation ensemble"
     authors:
-      - family-names: "{{PAPER_AUTHOR_FAMILY}}"
-        given-names: "{{PAPER_AUTHOR_GIVEN}}"
-    year: "{{PAPER_YEAR}}"
-    doi: "{{PAPER_DOI}}"
-  # Prior FORRT chain this replication extends or qualifies. The URI below
-  # is the canonical persistent pointer to the prior constellation; the
-  # imported summary itself (CHAIN_SUMMARY.md, constellation.json, cached
-  # TriG) is regenerated on demand via `/import-from-nanopub <URL>` and
-  # lives in the gitignored `nanopubs/imported/` directory.
-  #
-  # If your replication does NOT extend a prior chain, init-template
-  # removes this entry. If it does, init-template substitutes the URI
-  # and description below from your responses.
-  - type: generic
-    title: "{{PRIOR_CHAIN_DESCRIPTION}}"
-    url: "{{PRIOR_CHAIN_URI}}"
-    notes: "Apex CiTO Citation of the prior FORRT chain this replication extends. Re-run `/import-from-nanopub <URL>` to repopulate nanopubs/imported/ locally."
+      - family-names: "Hundhausen"
+        given-names: "Marie"
+    year: "2024"
+    doi: "10.1002/joc.8393"

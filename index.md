@@ -1,8 +1,8 @@
-# {{REPO_NAME}}
+# extreme-precipitation-climatedt-replication
 
-> **{{PAPER_TITLE}}** — replication study.
+> **Climate change signals of extreme precipitation return levels for Germany in a transient convection-permitting simulation ensemble** — replication study.
 >
-> Reference paper: [{{PAPER_DOI}}](https://doi.org/{{PAPER_DOI}})
+> Reference paper: [10.1002/joc.8393](https://doi.org/10.1002/joc.8393)
 
 This repository is a self-contained replication of the headline claim from the reference paper above. It produces:
 
@@ -13,8 +13,8 @@ This repository is a self-contained replication of the headline claim from the r
 ## Quick start
 
 ```bash
-git clone https://github.com/{{REPO_ORG}}/{{REPO_NAME}}.git
-cd {{REPO_NAME}}
+git clone https://github.com/annefou/extreme-precipitation-climatedt-replication.git
+cd extreme-precipitation-climatedt-replication
 pixi install
 pixi run snakemake --cores 1
 ```
@@ -22,7 +22,7 @@ pixi run snakemake --cores 1
 Or with Docker:
 
 ```bash
-docker run --rm ghcr.io/{{REPO_ORG}}/{{REPO_NAME}}:latest
+docker run --rm ghcr.io/annefou/extreme-precipitation-climatedt-replication:latest
 ```
 
 ## Structure
@@ -43,4 +43,4 @@ The published chain is listed in [`nanopubs/PUBLISHED.md`](nanopubs/PUBLISHED.md
 If you use this work, please cite both:
 
 - This software: [`CITATION.cff`](CITATION.cff) → DOI [{{ZENODO_DOI}}]({{ZENODO_DOI}}).
-- The original paper: [{{PAPER_DOI}}](https://doi.org/{{PAPER_DOI}}).
+- The original paper: [10.1002/joc.8393](https://doi.org/10.1002/joc.8393).

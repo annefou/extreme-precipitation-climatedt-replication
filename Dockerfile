@@ -1,7 +1,7 @@
 FROM ghcr.io/prefix-dev/pixi:0.68.1
 
-LABEL org.opencontainers.image.source="https://github.com/{{REPO_ORG}}/{{REPO_NAME}}"
-LABEL org.opencontainers.image.description="Replication study container for {{REPO_NAME}}"
+LABEL org.opencontainers.image.source="https://github.com/annefou/extreme-precipitation-climatedt-replication"
+LABEL org.opencontainers.image.description="Replication study container for extreme-precipitation-climatedt-replication"
 LABEL org.opencontainers.image.licenses="MIT"
 
 WORKDIR /app
@@ -14,7 +14,7 @@ RUN pixi install --locked
 COPY . /app
 
 # Mount any required credentials at runtime, e.g.:
-#   docker run -v ~/.cdsapirc:/home/mambauser/.cdsapirc {{REPO_NAME}}
+#   docker run -v ~/.cdsapirc:/home/mambauser/.cdsapirc extreme-precipitation-climatedt-replication
 # See data/README.md for per-dataset credential setup.
 
 CMD ["pixi", "run", "snakemake", "--cores", "1"]

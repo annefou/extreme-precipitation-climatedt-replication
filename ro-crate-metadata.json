@@ -14,12 +14,12 @@
     {
       "@id": "./",
       "@type": ["Dataset", "ResearchObject"],
-      "name": "{{REPO_NAME}}",
-      "description": "{{REPO_DESCRIPTION}}",
+      "name": "extreme-precipitation-climatedt-replication",
+      "description": "Replication of Hundhausen et al. (2024) extreme-precipitation return-level scaling over Germany using Destination Earth Climate DT km-scale hourly data on HEALPix",
       "datePublished": "{{RELEASE_DATE}}",
       "license": { "@id": "https://spdx.org/licenses/MIT" },
-      "publisher": { "@id": "{{AUTHOR_ORCID}}" },
-      "author": [{ "@id": "{{AUTHOR_ORCID}}" }],
+      "publisher": { "@id": "https://orcid.org/0000-0002-1784-2920" },
+      "author": [{ "@id": "https://orcid.org/0000-0002-1784-2920" }],
       "mainEntity": { "@id": "Snakefile" },
       "hasPart": [
         { "@id": "Snakefile" },
@@ -37,14 +37,14 @@
         { "@id": "nanopubs/PUBLISHED.md" }
       ],
       "citation": [
-        { "@id": "https://doi.org/{{PAPER_DOI}}" }
+        { "@id": "https://doi.org/10.1002/joc.8393" }
       ]
     },
     {
-      "@id": "{{AUTHOR_ORCID}}",
+      "@id": "https://orcid.org/0000-0002-1784-2920",
       "@type": "Person",
-      "name": "{{AUTHOR_NAME}}",
-      "affiliation": "{{AUTHOR_AFFILIATION}}"
+      "name": "Anne Fouilloux",
+      "affiliation": "LifeWatch ERIC"
     },
     {
       "@id": "Snakefile",
@@ -130,10 +130,10 @@
       "description": "URIs of the published Quote / AIDA / FORRT Claim / Replication Study / Replication Outcome / CiTO Citation steps."
     },
     {
-      "@id": "https://doi.org/{{PAPER_DOI}}",
+      "@id": "https://doi.org/10.1002/joc.8393",
       "@type": "ScholarlyArticle",
-      "name": "{{PAPER_TITLE}}",
-      "datePublished": "{{PAPER_YEAR}}"
+      "name": "Climate change signals of extreme precipitation return levels for Germany in a transient convection-permitting simulation ensemble",
+      "datePublished": "2024"
     }
   ]
 }

@@ -8,7 +8,7 @@
 # this file; commit both files in the same commit.
 
 [workspace]
-name = "{{REPO_NAME}}"
+name = "extreme-precipitation-climatedt-replication"
 # bioconda hosts snakemake (and downstream rule-engine ecosystem); conda-forge
 # is the priority channel for everything else.
 channels = ["conda-forge", "bioconda"]

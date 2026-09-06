@@ -269,6 +269,40 @@ def to_study_schema(ds, param: str = PARAM_PRECIP):
     return out.transpose("time", "cell")
 
 
+def configure_cache(cache_dir: Path, max_size: str = "6G") -> dict:
+    """Bound earthkit's download cache, and put it on the data disk.
+
+    This is not a tuning knob, it is a correctness fix. earthkit-data ships with
+    `cache-policy = "off"`, which does NOT mean "do not cache": it means cache
+    into a temporary directory that is cleaned up only when the process exits.
+    Over a long retrieval the CoverageJSON responses therefore accumulate with
+    no eviction at all -- roughly 300 MB per month here. A real run filled the
+    root filesystem after 50 months (16 GB in /tmp) and every subsequent request
+    died with ENOSPC.
+
+    Switching to the `user` policy is what turns eviction on, and gives a
+    directory we choose, so the cache can live on the same large disk as the
+    data instead of on `/`.
+
+    Returns the resulting settings so a caller can print what it applied.
+    """
+    from earthkit.data import config
+
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    config.set(
+        {
+            "cache-policy": "user",
+            "user-cache-directory": str(cache_dir),
+            "maximum-cache-size": max_size,
+        }
+    )
+    return {
+        "cache-policy": config.get("cache-policy"),
+        "user-cache-directory": config.get("user-cache-directory"),
+        "maximum-cache-size": config.get("maximum-cache-size"),
+    }
+
+
 def retrieve(request: dict):
     """Run one Polytope request and return the earthkit source.
 

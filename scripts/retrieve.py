@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import calendar
 import json
+import shutil
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -116,9 +117,21 @@ def fetch_with_retries(window: str, year: int, month: int, raw_dir: Path) -> Pat
     raise RuntimeError(f"{window} {year}-{month:02d} failed after {MAX_ATTEMPTS} attempts") from last
 
 
-def retrieve_all(raw_dir: Path, windows: list[str] | None = None, workers: int = DEFAULT_WORKERS):
+def retrieve_all(
+    raw_dir: Path,
+    windows: list[str] | None = None,
+    workers: int = DEFAULT_WORKERS,
+    cache_dir: Path | None = None,
+):
     """Fetch every missing month, `workers` at a time. Returns (done, failed)."""
     raw_dir.mkdir(parents=True, exist_ok=True)
+
+    # Bound the download cache BEFORE the first request. earthkit's default
+    # policy caches into a temp directory it only cleans at process exit, which
+    # filled the root filesystem 50 months into the first real run.
+    applied = climatedt.configure_cache(cache_dir or raw_dir.parent / ".earthkit-cache")
+    print(f"cache: {applied}", flush=True)
+
     wanted = all_months(windows)
     todo = [t for t in wanted if not month_path(raw_dir, *t).exists()]
     print(
@@ -148,12 +161,26 @@ def retrieve_all(raw_dir: Path, windows: list[str] | None = None, workers: int =
             elapsed = time.time() - started
             eta = elapsed / i * (len(todo) - i)
             size_mb = path.stat().st_size / 1e6
+            # Report the cache and the free space on the disk the cache lives
+            # on, every time. The first run died of a full filesystem with
+            # nothing in the log pointing at it.
+            usage = shutil.disk_usage(raw_dir)
             print(
                 f"[{i}/{len(todo)}] {window} {year}-{month:02d}  {size_mb:5.0f} MB  "
-                f"elapsed {elapsed / 3600:.2f} h  eta {eta / 3600:.2f} h",
+                f"elapsed {elapsed / 3600:.2f} h  eta {eta / 3600:.2f} h  "
+                f"cache {cache_size_gb():.1f} GB  free {usage.free / 1e9:.0f} GB",
                 flush=True,
             )
     return done, failed
+
+
+def cache_size_gb() -> float:
+    from earthkit.data import cache
+
+    try:
+        return cache.size() / 1e9
+    except Exception:  # noqa: BLE001 - a diagnostic must never break the run
+        return float("nan")
 
 
 def main() -> int:

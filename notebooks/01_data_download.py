@@ -188,14 +188,36 @@ def fetch_year(window: str, year: int) -> Path:
     return out
 
 
+# %% [markdown]
+# A credential that is present but **rejected** stops this notebook. It
+# deliberately does not fall back to the synthetic stand-in: silently swapping
+# real data for smoke-test data on the one machine that was supposed to produce
+# the result is exactly the failure mode that makes a pipeline look green and
+# mean nothing.
+
 # %%
 written: list[Path] = []
 if HAVE_DESTINE:
-    for window, spec in climatedt.WINDOWS.items():
-        first, last = spec["years"]
-        print(f"{window} ({spec['label']}):")
-        for year in range(first, last + 1):
-            written.append(fetch_year(window, year))
+    try:
+        for window, spec in climatedt.WINDOWS.items():
+            first, last = spec["years"]
+            print(f"{window} ({spec['label']}):")
+            for year in range(first, last + 1):
+                written.append(fetch_year(window, year))
+    except Exception:
+        print(
+            f"\nRetrieval failed with a credential present ({climatedt.credential_source()}).\n"
+            "NOT falling back to synthetic data — that would hide the failure.\n\n"
+            "Run `pixi run check-destine` for a one-request diagnosis. In short:\n"
+            "  401 -> the key. A DEDL API key (client id + short secret from My\n"
+            "         DataLake Services) authenticates HDA, not Polytope. Polytope\n"
+            "         needs the DESP offline token from desp-authentication.py.\n"
+            "  403 -> the entitlement. Ask for access at platform.destine.eu.\n"
+            "  MARS error -> a request key. Check generation/activity/experiment.\n\n"
+            "To run the rest of the pipeline as a smoke test meanwhile, move the\n"
+            "credential aside: POLYTOPE_KEY_PATH=/nonexistent snakemake --cores 1"
+        )
+        raise
 else:
     print(
         "No DestinE credentials — writing the SYNTHETIC stand-in instead.\n"

@@ -13,8 +13,18 @@ Atomic, Independent, Declarative, Absolute. One empirical finding. Must end with
 
 > _If your draft AIDA contains "and" linking two distinct findings, split into two AIDA nanopubs._
 
-```
+Atomicity check: the two "and"s here join the two *arms of one comparison*
+(short-duration/long-RP vs long-duration/short-RP), not two separate findings.
+One empirical claim: a rank ordering of the intensification response across the
+duration x return-period matrix.
 
+Deliberately carries no region, no model and no number, so it is testable in any
+domain with hourly km-scale data — a later chain can `extends` it to another
+country. The magnitude (6 or 8.5% per K) belongs in the Outcome as evidence, not
+here.
+
+```
+Under global warming, extreme precipitation events of short duration and long return period intensify proportionally more than events of long duration and short return period.
 ```
 
 <!-- field: topic -->
@@ -22,8 +32,24 @@ Atomic, Independent, Declarative, Absolute. One empirical finding. Must end with
 
 Predefined topic vocabulary — list the labels you intend to pick from the dropdown.
 
-```
+Each verified with `wikidata_lookup`: this field's template declares `owl:Class`,
+so every term below was confirmed to carry a `P279` (subclass of) statement.
 
+| Label | QID | P279 | |
+|---|---|---|---|
+| extreme rainfall | Q111089542 | ✓ | the phenomenon the claim is about |
+| global warming | Q7942 | ✓ | the forcing the response is scaled against |
+| climate change adaptation | Q260607 | ✓ | why the duration/return-period structure matters |
+
+**Not used: `return period` (Q2627230).** It is the right concept, but the
+Wikidata item carries *no* `P31` or `P279` statements at all, so it fails this
+field's `owl:Class` requirement. It would be acceptable in a plain keyword field,
+which imposes no type.
+
+```
+extreme rainfall
+global warming
+climate change adaptation
 ```
 
 <!-- field: project -->

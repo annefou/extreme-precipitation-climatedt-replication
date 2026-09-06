@@ -34,11 +34,17 @@ Verbatim from the paper PDF in `paper/`. Character-for-character. ≤ 500 chars 
 
 > _Read the PDF first. Don't paraphrase from memory. See `docs/verify-before-drafting.md`._
 
-```
+Verified with `verify_quote` against `paper/hundhausen-2024.pdf`: **`normalized`**, page 13
+(Conclusions), transforms `collapse-whitespace`, `join-hyphenated-linebreaks`,
+`typographic-punctuation`. The same claim as phrased in the *abstract* does NOT verify —
+that page's text layer inserts spaces inside words ("CP en semble", "largest c hanges") —
+so the Conclusions wording is used.
 
 ```
+The CP simulations project climate change signals of extreme precipitation intensities of up to 6 or 8.5% increase per K GW depending on the ensemble member. Events with short duration and long RPs are expected to change the most.
+```
 
-Character count: ___ / 500.
+Character count: 230 / 500.
 
 <!-- field: quotation-end -->
 ### End of quotation (optional - use when quoting beginning and end of a longer passage, max. 500 characters) (textarea, optional)
@@ -56,9 +62,14 @@ phrase here. Leave empty for a single short quote.
 
 Why this quote matters and what the replication tests. Connect the paper's claim to the work this repo does. Don't repeat the quote.
 
-```
+> **Review this — the Comment is meant to be your interpretation, not the agent's.**
+> Proposed wording below; edit or replace.
 
 ```
+This is the paper's transferable finding, and the one this replication tests. The magnitude (6 or 8.5% per K) is specific to a COSMO-CLM ensemble over Germany and could only be re-measured elsewhere, not tested. The second sentence asserts a STRUCTURE — that the intensification is largest for short durations and long return periods — which is a hypothesis about thermodynamics and should hold in other domains and other models if it is real. That makes it reusable: a later chain can extend it to another country with the same data. It is also the adaptation-relevant half, because short-duration, long-return-period events are what urban drainage is designed around.
+```
+
+Character count: 669 / 800.
 
 ## Publication note
 

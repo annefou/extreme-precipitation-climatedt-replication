@@ -1,0 +1,126 @@
+@prefix this: <https://w3id.org/np/RAZWyM8D16ya3S1zhCvrG1f0iSpd9-8onVWp0FTvvX7LQ> .
+@prefix sub: <https://w3id.org/np/RAZWyM8D16ya3S1zhCvrG1f0iSpd9-8onVWp0FTvvX7LQ/> .
+@prefix np: <http://www.nanopub.org/nschema#> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix nt: <https://w3id.org/np/o/ntemplate/> .
+@prefix npx: <http://purl.org/nanopub/x/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix orcid: <https://orcid.org/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+
+sub:Head {
+  this: a np:Nanopublication;
+    np:hasAssertion sub:assertion;
+    np:hasProvenance sub:provenance;
+    np:hasPublicationInfo sub:pubinfo .
+}
+
+sub:assertion {
+  dct:source rdfs:label "has the original source" .
+  
+  rdf:type rdfs:label "is a" .
+  
+  rdfs:label rdfs:label "has the label" .
+  
+  sub:aida a nt:GuidedChoicePlaceholder;
+    rdfs:label "choose AIDA sentence of claim";
+    nt:possibleValuesFromApi "http://purl.org/nanopub/api/find_signed_things?type=http%3A%2F%2Fpurl.org%2Fpetapico%2Fo%2Fhycl%23AIDA-Sentence&searchterm=" .
+  
+  sub:assertion a nt:AssertionTemplate;
+    rdfs:label "Declaring an original claim according to FORRT";
+    nt:hasStatement sub:st00, sub:st00.2, sub:st01, sub:st02, sub:st03;
+    nt:hasTag "FORRT" .
+  
+  sub:claim a nt:IntroducedResource, nt:LocalResource, nt:UriPlaceholder;
+    rdfs:label "Short URI suffix as claim ID";
+    nt:possibleValuesFromApi "http://purl.org/nanopub/api/find_signed_things?type=http%3A%2F%2Fpurl.org%2Fpetapico%2Fo%2Fhycl%23AIDA-Sentence&searchterm=" .
+  
+  sub:forrtType a nt:RestrictedChoicePlaceholder;
+    rdfs:label "Type of FORRT claim";
+    nt:possibleValue <https://w3id.org/sciencelive/o/terms/computational_performance-FORRT-Claim>,
+      <https://w3id.org/sciencelive/o/terms/data_governance-FORRT-Claim>, <https://w3id.org/sciencelive/o/terms/data_quality-FORRT-Claim>,
+      <https://w3id.org/sciencelive/o/terms/descriptive_pattern-FORRT-Claim>, <https://w3id.org/sciencelive/o/terms/model_performance-FORRT-Claim>,
+      <https://w3id.org/sciencelive/o/terms/scalability-FORRT-Claim>, <https://w3id.org/sciencelive/o/terms/statistical_significance-FORRT-Claim> .
+  
+  sub:label a nt:LiteralPlaceholder;
+    rdfs:label "label of the claim, to find it later" .
+  
+  sub:source a nt:ExternalUriPlaceholder;
+    rdfs:label "source URI" .
+  
+  sub:st00 rdf:object <https://w3id.org/sciencelive/o/terms/FORRT-Claim>;
+    rdf:predicate rdf:type;
+    rdf:subject sub:claim .
+  
+  sub:st00.2 rdf:object sub:label;
+    rdf:predicate rdfs:label;
+    rdf:subject sub:claim .
+  
+  sub:st01 rdf:object sub:aida;
+    rdf:predicate <https://w3id.org/sciencelive/o/terms/asAidaStatement>;
+    rdf:subject sub:claim .
+  
+  sub:st02 rdf:object sub:forrtType;
+    rdf:predicate rdf:type;
+    rdf:subject sub:claim .
+  
+  sub:st03 a nt:OptionalStatement;
+    rdf:object sub:source;
+    rdf:predicate dct:source;
+    rdf:subject sub:claim .
+  
+  <https://w3id.org/sciencelive/o/terms/FORRT-Claim> rdfs:label "FORRT claim" .
+  
+  <https://w3id.org/sciencelive/o/terms/asAidaStatement> rdfs:label "corresponds to - linking to an AIDA statement: an English sentence that is Atomic (describing a single thought), Independent (can be understood as a single sentence without further context), Declarative (complete sentence ending with a full stop), and Absolute (describing the core of a claim ignoring certainty and source)" .
+  
+  <https://w3id.org/sciencelive/o/terms/computational_performance-FORRT-Claim> rdfs:label
+      "computational performance (Computational & Performance)" .
+  
+  <https://w3id.org/sciencelive/o/terms/data_governance-FORRT-Claim> rdfs:label "data governance (access control, licensing, FAIR compliance)" .
+  
+  <https://w3id.org/sciencelive/o/terms/data_quality-FORRT-Claim> rdfs:label "data quality (preprocessing, validation, normalization)" .
+  
+  <https://w3id.org/sciencelive/o/terms/descriptive_pattern-FORRT-Claim> rdfs:label
+      "descriptive pattern (distribution, trend, proportion)" .
+  
+  <https://w3id.org/sciencelive/o/terms/model_performance-FORRT-Claim> rdfs:label "model performance (accuracy, F1 score, evaluation metrics)" .
+  
+  <https://w3id.org/sciencelive/o/terms/scalability-FORRT-Claim> rdfs:label "scalability (Computational & Performance)" .
+  
+  <https://w3id.org/sciencelive/o/terms/statistical_significance-FORRT-Claim> rdfs:label
+      "statistical significance (significant difference, relationship, or effect)" .
+}
+
+sub:provenance {
+  sub:assertion prov:wasAttributedTo orcid:0000-0002-1267-0234, orcid:0000-0002-1784-2920 .
+}
+
+sub:pubinfo {
+  orcid:0000-0002-1267-0234 foaf:name "Tobias Kuhn" .
+  
+  orcid:0000-0002-1784-2920 foaf:name "Anne Fouilloux" .
+  
+  this: dct:created "2026-04-12T09:05:17.949Z"^^xsd:dateTime;
+    dct:creator orcid:0000-0002-1267-0234, orcid:0000-0002-1784-2920;
+    dct:license <https://creativecommons.org/licenses/by/4.0/>;
+    npx:supersedes <https://w3id.org/np/RAu5uTahAxc0OLBB3vaGwK3OQDDZV7QuWtDlBk0Ea3bco>;
+    npx:wasCreatedAt <https://nanodash.knowledgepixels.com/>;
+    rdfs:label "Declaring an original claim according to FORRT";
+    prov:wasDerivedFrom <https://w3id.org/np/RAVdxfm3fgFahBItmNmJX_Xkmg1xlimDtoSMjZgNIs2bQ>,
+      <https://w3id.org/np/RAmw2sp_oDePsdYg-7C8GCTMSzqAG2LFDe6NdRK0FwnQE>;
+    nt:wasCreatedFromProvenanceTemplate <https://w3id.org/np/RA7lSq6MuK_TIC6JMSHvLtee3lpLoZDOqLJCLXevnrPoU>;
+    nt:wasCreatedFromPubinfoTemplate <https://w3id.org/np/RACJ58Gvyn91LqCKIO9zu1eijDQIeEff28iyDrJgjSJF8>,
+      <https://w3id.org/np/RAMEgudZsQ1bh1fZhfYnkthqH6YSXpghSE_DEN1I-6eAI>, <https://w3id.org/np/RARW4MsFkHuwjycNElvEVtuMjpf4yWDL10-0C5l2MqqRQ>,
+      <https://w3id.org/np/RAoTD7udB2KtUuOuAe74tJi1t3VzK0DyWS7rYVAq1GRvw>, <https://w3id.org/np/RAukAcWHRDlkqxk7H2XNSegc1WnHI569INvNr-xdptDGI>;
+    nt:wasCreatedFromTemplate <https://w3id.org/np/RASDwdz5WzsWdeDRREs0i5n5xTtKTrKS8pCIFUXhlkpt0> .
+  
+  sub:sig npx:hasAlgorithm "RSA";
+    npx:hasPublicKey "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDWv2pJnmDsBOq8OlT1aSvYXSuWT34WOp4FYqEzdnn2F0kqzcFevBqWGZDxJWC0lqCrDEuNfp2QFyPe/+nES9dlHGYIhqPi68fwK6ZiNUotRFxXou+rjFznVvUxtCL8Ede79EBHwWN61QtwSIcU12bLoZsNPFlqQASQ93BJuKlihwIDAQAB";
+    npx:hasSignature "X/cwkqpCTsF1MUXz2RpBYyGgH1jpTEkO8kFzUy2DZHy38EXdOsYrF9tdWTZd3fINftLVbMA+BNFGsRrZblj+o4+tsenKIaWEZT1JVLTWRqsTDSbIAydkt+0lhy5VDLeWngdowwYw9TjmkdU6tXfOAsgx4r3EDcSy/kJV7wzJRxc=";
+    npx:hasSignatureTarget this:;
+    npx:signedBy orcid:0000-0002-1784-2920 .
+}
+

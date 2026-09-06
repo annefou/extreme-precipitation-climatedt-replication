@@ -1,0 +1,275 @@
+{
+  "_comment": "Extended worked example of the chain-draft.json contract (see docs/chain-draft-contract.md). Same bombus-thermal-replication scenario as chain-draft.example.json, but ALL SIX core steps (01-06) are already published AND the two OPTIONAL layers are included: 07 Research Software and 08 Research Synthesis. Because 01-06 have URIs, the wizard resumes at step 07. BACK-LINKS ARE CARRIED, NOT HAND-FILLED: 07 and 08 link back to NON-ADJACENT steps and get MULTIPLE carry_forward edges (see carry_forward below): 07.project <- Claim (03, scalar), 07.researchOutputs <- Outcome (05, mode uriList), 08.sources <- Outcome (05, mode uriObjectList keyed by 'source'). Those fields are therefore ABSENT from the steps' prefill on purpose — the wizard injects them from the referenced steps' published URIs (whether those were published live this session or recorded earlier in PUBLISHED.md).",
+  "schema_version": "1.0",
+  "kind": "forrt-chain-draft",
+  "chain_shape": "paper-rooted",
+  "source": {
+    "repository": "https://github.com/annefou/bombus-thermal-replication",
+    "commit": "d1a052a8432e0c82d99d1f601fac543d13655cd9"
+  },
+  "steps": [
+    {
+      "step": "01_quote",
+      "template_key": "ANNOTATE_QUOTATION",
+      "template_uri": "https://w3id.org/np/RA24onqmqTMsraJ7ypYFOuckmNWpo4Zv5gsLqhXt7xYPU",
+      "prefill": {
+        "paper": "10.1126/science.aax8591",
+        "quotation": "Bumblebee species across North America and Europe are declining in areas where temperatures have increased beyond historical limits.",
+        "comment": "This replication tests whether the thermal-exposure signal holds for Iberian Bombus using an equal-area HEALPix regridding, on independent GBIF occurrence data."
+      },
+      "provenance": {
+        "paper": "CITATION.cff references[article]",
+        "quotation": "nanopubs/drafts/01_quote.md",
+        "comment": "nanopubs/drafts/01_quote.md"
+      },
+      "manual": [
+        "quoteType"
+      ],
+      "published_uri": "https://w3id.org/sciencelive/np/RAquote0example00000000000000000000000000"
+    },
+    {
+      "step": "02_aida",
+      "template_key": "AIDA_SENTENCE",
+      "template_uri": "https://w3id.org/np/RALmXhDw3rHcMveTgbv8VtWxijUHwnSqhCmtJFIPKWVaA",
+      "prefill": {
+        "aida": "Increased thermal exposure between historical baseline and recent climate predicts higher probability of local extirpation in Iberian Bombus populations.",
+        "topic": [
+          {
+            "uri": "http://www.wikidata.org/entity/Q188872",
+            "label": "bumblebee"
+          },
+          {
+            "uri": "http://www.wikidata.org/entity/Q7942",
+            "label": "climate change"
+          }
+        ]
+      },
+      "provenance": {
+        "aida": "nanopubs/drafts/02_aida.md",
+        "topic": "nanopubs/drafts/02_aida.md + Wikidata"
+      },
+      "manual": [
+        "topic"
+      ],
+      "published_uri": "https://w3id.org/sciencelive/np/RAaida00example00000000000000000000000000"
+    },
+    {
+      "step": "03_claim",
+      "template_key": "FORRT_CLAIM",
+      "template_uri": "https://w3id.org/np/RAZWyM8D16ya3S1zhCvrG1f0iSpd9-8onVWp0FTvvX7LQ",
+      "prefill": {
+        "claim": "annefou-bombus-thermal-replication-claim",
+        "label": "Thermal exposure predicts Iberian Bombus extirpation",
+        "source": "https://doi.org/10.1126/science.aax8591",
+        "forrtType": "https://w3id.org/sciencelive/o/terms/descriptive_pattern-FORRT-Claim"
+      },
+      "provenance": {
+        "label": "nanopubs/drafts/03_claim.md",
+        "source": "CITATION.cff references[article]",
+        "claim": "derived (<org>-<repo>-<step>)",
+        "forrtType": "nanopubs/drafts/03_claim.md"
+      },
+      "manual": [
+        "forrtType"
+      ],
+      "published_uri": "https://w3id.org/sciencelive/np/RAclaim0example00000000000000000000000000"
+    },
+    {
+      "step": "04_study",
+      "template_key": "FORRT_REPLICATION",
+      "template_uri": "https://w3id.org/np/RAuLEjPp-4dTvPwMkfHggTto1CgjIftiGRAgHlyeEonjQ",
+      "prefill": {
+        "study": "annefou-bombus-thermal-replication-study",
+        "label": "Iberian Bombus thermal-exposure replication",
+        "scope": "Tests the headline thermal-exposure-to-extirpation relationship for Iberian Bombus only; does not re-test the North American populations of the original.",
+        "methodology": "GBIF Iberian Bombus occurrences regridded to equal-area HEALPix (healpix-geo, nested, depth 6) on the WGS84 ellipsoid; a GLMM of extirpation on standardised thermal-exposure change between 1901-1974 and 2000-2014 baselines.",
+        "deviation": "Original used a lat/lon grid; this replication uses equal-area HEALPix to remove the area bias near the poles.",
+        "type": "https://w3id.org/sciencelive/o/terms/Replication-Study",
+        "keywordSelection": [
+          {
+            "uri": "http://www.wikidata.org/entity/Q7942",
+            "label": "climate change"
+          },
+          {
+            "uri": "http://www.wikidata.org/entity/Q188872",
+            "label": "bumblebee"
+          }
+        ],
+        "disciplineSelection": {
+          "uri": "http://www.wikidata.org/entity/Q7150",
+          "label": "ecology"
+        }
+      },
+      "provenance": {
+        "label": "nanopubs/drafts/04_study.md",
+        "scope": "nanopubs/drafts/04_study.md",
+        "methodology": "nanopubs/drafts/04_study.md",
+        "deviation": "nanopubs/drafts/04_study.md",
+        "study": "derived (<org>-<repo>-<step>)",
+        "type": "nanopubs/drafts/04_study.md",
+        "keywordSelection": "nanopubs/drafts/04_study.md + Wikidata",
+        "disciplineSelection": "nanopubs/drafts/04_study.md + Wikidata"
+      },
+      "manual": [
+        "type"
+      ],
+      "published_uri": "https://w3id.org/sciencelive/np/RAstudy0example00000000000000000000000000"
+    },
+    {
+      "step": "05_outcome",
+      "template_key": "FORRT_REPLICATION_OUTCOME",
+      "template_uri": "https://w3id.org/np/RA2zljn0Nw9SadppOyxZoh-_Rxosslrq-vYG-p9SttnJE",
+      "prefill": {
+        "outcome": "annefou-bombus-thermal-replication-outcome",
+        "label": "Iberian Bombus thermal-exposure outcome",
+        "repo": "https://doi.org/10.5281/zenodo.20943752",
+        "date": "2026-06-26",
+        "conclusion": "The thermal-exposure signal holds on the equal-area grid: standardised thermal-exposure change positively predicts local extirpation, consistent in sign with the original.",
+        "evidence": "GLMM coefficient on standardised thermal-exposure change +0.454 (95% HDI [+0.130, +0.751]); n = 1,204 occupied cells at depth 6.",
+        "limitations": "Single taxon and region; occurrence data are presence-mostly, so absences are inferred rather than surveyed.",
+        "validationStatus": "https://w3id.org/sciencelive/o/terms/Validated",
+        "confidenceLevel": "https://w3id.org/sciencelive/o/terms/HighConfidence"
+      },
+      "provenance": {
+        "repo": "CITATION.cff identifiers[Version DOI]",
+        "date": "CITATION.cff date-released",
+        "conclusion": "nanopubs/drafts/05_outcome.md",
+        "evidence": "nanopubs/drafts/05_outcome.md",
+        "limitations": "nanopubs/drafts/05_outcome.md",
+        "outcome": "derived (<org>-<repo>-<step>)",
+        "validationStatus": "nanopubs/drafts/05_outcome.md",
+        "confidenceLevel": "nanopubs/drafts/05_outcome.md"
+      },
+      "manual": [
+        "validationStatus",
+        "confidenceLevel"
+      ],
+      "published_uri": "https://w3id.org/sciencelive/np/RAoutcm0example00000000000000000000000000"
+    },
+    {
+      "step": "06_citation",
+      "template_key": "CITATION_CITO",
+      "template_uri": "https://w3id.org/np/RA43F9EoOuzF0xoNUnCMNyFsfIqlsuWDdPHCnN0wCdCAw",
+      "prefill": {
+        "st02": [
+          {
+            "cites": "http://purl.org/spar/cito/confirms",
+            "cited": "https://doi.org/10.1126/science.aax8591"
+          }
+        ]
+      },
+      "provenance": {
+        "st02": "cites = validation status (Validated -> confirms); cited = CITATION.cff references[article]"
+      },
+      "manual": [],
+      "published_uri": "https://w3id.org/sciencelive/np/RAcito00example00000000000000000000000000"
+    },
+    {
+      "step": "07_research_software",
+      "template_key": "RESEARCH_SOFTWARE",
+      "template_uri": "https://w3id.org/np/RABBzVTxosLGT4YBCfdfNd6LyuOOTe2EVOTtWJMyOoZHk",
+      "prefill": {
+        "software": "https://doi.org/10.5281/zenodo.20943752",
+        "title": "Iberian Bombus thermal-exposure replication code",
+        "repository": "https://github.com/annefou/bombus-thermal-replication",
+        "license": "https://spdx.org/licenses/MIT.html",
+        "datasets": [
+          "https://doi.org/10.15468/dl.bombus0"
+        ]
+      },
+      "provenance": {
+        "software": "CITATION.cff identifiers[Version DOI]",
+        "repository": "CITATION.cff repository-code",
+        "project": "carried <- FORRT Claim (step 03)",
+        "researchOutputs": "carried <- FORRT Outcome (step 05)",
+        "datasets": "nanopubs/drafts/07_research_software.md",
+        "title": "nanopubs/drafts/07_research_software.md",
+        "license": "nanopubs/drafts/07_research_software.md"
+      },
+      "manual": [],
+      "published_uri": null
+    },
+    {
+      "step": "08_synthesis",
+      "template_key": "RESEARCH_SYNTHESIS",
+      "template_uri": "https://w3id.org/np/RApmrqOEr4f5bJC2vayrTnzhwnuEfAU_I4Pdg8K5JxeBw",
+      "prefill": {
+        "synthesis": "annefou-bombus-thermal-replication-synthesis",
+        "label": "Thermal exposure and Bombus extirpation - cross-region synthesis",
+        "conclusion": "Across the tested regions, increased thermal exposure consistently predicts higher local extirpation probability in Bombus.",
+        "recommendation": "Prioritise equal-area regridding when aggregating occurrence data across latitudes, to avoid the area bias of lat/lon grids.",
+        "conditions": "Applies to Bombus occurrence datasets with sufficient temporal baseline coverage (pre-1975 and post-2000 windows).",
+        "limitations": "Presence-mostly occurrence data; regional coverage remains sparse outside Europe and North America.",
+        "date": "2026-06-26",
+        "topicSelection": [
+          {
+            "uri": "http://www.wikidata.org/entity/Q188872",
+            "label": "bumblebee"
+          },
+          {
+            "uri": "http://www.wikidata.org/entity/Q7942",
+            "label": "climate change"
+          }
+        ]
+      },
+      "provenance": {
+        "label": "nanopubs/drafts/08_synthesis.md",
+        "conclusion": "nanopubs/drafts/08_synthesis.md",
+        "recommendation": "nanopubs/drafts/08_synthesis.md",
+        "conditions": "nanopubs/drafts/08_synthesis.md",
+        "limitations": "nanopubs/drafts/08_synthesis.md",
+        "synthesis": "derived (<org>-<repo>-<step>)",
+        "date": "CITATION.cff date-released",
+        "sources": "carried <- FORRT Outcome (step 05)",
+        "topicSelection": "nanopubs/drafts/08_synthesis.md + Wikidata"
+      },
+      "manual": [],
+      "published_uri": null
+    }
+  ],
+  "carry_forward": [
+    {
+      "from": "01_quote",
+      "into": "02_aida",
+      "field": "project"
+    },
+    {
+      "from": "02_aida",
+      "into": "03_claim",
+      "field": "aida"
+    },
+    {
+      "from": "03_claim",
+      "into": "04_study",
+      "field": "claim"
+    },
+    {
+      "from": "04_study",
+      "into": "05_outcome",
+      "field": "study"
+    },
+    {
+      "from": "05_outcome",
+      "into": "06_citation",
+      "field": "work"
+    },
+    {
+      "from": "03_claim",
+      "into": "07_research_software",
+      "field": "project"
+    },
+    {
+      "from": "05_outcome",
+      "into": "07_research_software",
+      "field": "researchOutputs",
+      "mode": "uriList"
+    },
+    {
+      "from": "05_outcome",
+      "into": "08_synthesis",
+      "field": "sources",
+      "mode": "uriObjectList",
+      "itemKey": "source"
+    }
+  ]
+}

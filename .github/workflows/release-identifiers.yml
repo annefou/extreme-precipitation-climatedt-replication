@@ -1,0 +1,109 @@
+name: Record release identifiers
+
+# On release, capture this release's persistent identifiers into the repo's
+# metadata files: the Zenodo VERSION DOI, the concept DOI, and the SWHID.
+#
+# Previously none of these were captured. Zenodo minted the version DOI next to
+# the concept DOI and nothing read it; docker.yml even wrote a ZENODO_DOI to
+# $GITHUB_ENV on its last line, where nothing consumed it; the SWHID was never
+# retrieved at all. The only identifier recorded — by hand, per repo, differently
+# each time — was the concept DOI, which is the one that MOVES.
+#
+# See scripts/set_release_identifiers.py for the roles of the three identifiers
+# and why citing a concept DOI from an immutable nanopub is a bug.
+#
+# ORDERING: this runs on release:published, the same event that makes the
+# GitHub<->Zenodo webhook mint the record. The two race, so the script polls for
+# the record rather than assuming it exists. That race is also why the deposited
+# source tarball itself cannot contain its own DOI — the identifier is minted
+# from the tag, so it can only ever be written to the branch afterwards. That is
+# expected and not a defect; the archived tarball is pinned by the version DOI
+# and the SWHID regardless of what its CITATION.cff says.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to record identifiers for (e.g. v0.1.0)"
+        required: true
+
+permissions:
+  contents: write # commits the updated metadata back to the default branch
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      # Check out the DEFAULT BRANCH, not the tag: the identifiers are written
+      # to the branch, since the tag is immutable and already deposited.
+      # fetch-depth: 0 so the tag is present and resolvable below.
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      # Same guard as every other release-path workflow. On a release event this
+      # fails hard rather than skipping — see .github/actions/check-ready.
+      - name: Check repository readiness
+        id: guard
+        uses: ./.github/actions/check-ready
+
+      - name: Resolve the tag's commit
+        if: steps.guard.outputs.ready == 'true'
+        id: rev
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.release.tag_name || inputs.tag }}"
+
+          # `^{commit}` is load-bearing, not defensive noise. For an ANNOTATED
+          # tag, `git rev-parse "$TAG"` returns the TAG OBJECT, not the commit —
+          # and swh:1:rev:<tag object> is a well-formed SWHID that resolves to
+          # NOTHING. Verified against a real repo: meltponds v0.1.0's tag object
+          # 23044ecf... does not resolve as swh:1:rev:, its commit d1a052a8...
+          # does. Writing the wrong one produces a dead identifier in a permanent
+          # record, which is worse than no identifier at all.
+          COMMIT=$(git rev-parse "${TAG}^{commit}")
+
+          echo "tag=${TAG}"       >> "$GITHUB_OUTPUT"
+          echo "commit=${COMMIT}" >> "$GITHUB_OUTPUT"
+          echo "Tag ${TAG} -> commit ${COMMIT}"
+
+      - name: Set up pixi
+        if: steps.guard.outputs.ready == 'true'
+        uses: prefix-dev/setup-pixi@v0.9.6
+        with:
+          pixi-version: v0.68.1
+          environments: tests # the env carrying ruamel.yaml
+          locked: true
+          cache: true
+
+      - name: Record identifiers
+        if: steps.guard.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          pixi run -e tests python scripts/set_release_identifiers.py \
+            --repo "${{ github.repository }}" \
+            --tag "${{ steps.rev.outputs.tag }}" \
+            --commit "${{ steps.rev.outputs.commit }}"
+
+      - name: Commit
+        if: steps.guard.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- CITATION.cff codemeta.json ro-crate-metadata.json README.md index.md; then
+            echo "::notice::Identifiers already recorded for ${{ steps.rev.outputs.tag }} — nothing to commit."
+            exit 0
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CITATION.cff codemeta.json ro-crate-metadata.json README.md index.md
+          git commit -m "Record ${{ steps.rev.outputs.tag }} identifiers (version DOI + SWHID)"
+          git push
+          echo "::notice::Recorded ${{ steps.rev.outputs.tag }} identifiers on ${{ github.event.repository.default_branch }}."

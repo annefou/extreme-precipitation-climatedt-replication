@@ -1,0 +1,110 @@
+name: CI smoke run
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Smoke test: runs the replication pipeline end-to-end via the Snakefile.
+# Large inputs should be cached via actions/cache@v5 — see data/README.md.
+
+# Secrets ARE how credentials get in — but a secret cannot be read from a
+# step-level `if:`. The contexts allowed there are github, needs, strategy,
+# matrix, job, runner, env, vars, steps, inputs; `secrets` is not among them, so
+# `if: ${{ secrets.X != '' }}` is a parse error ("Unrecognized named-value:
+# 'secrets'") that fails the ENTIRE run, not just the step. The top-level `env`
+# block below CAN read secrets, and `env` IS available to a step `if:` — so the
+# secret comes in here and the step tests `env.X`. Same secret, same handling;
+# this is just the spelling that parses. docker.yml:11 does the same with
+# ZENODO_TOKEN.
+#
+# To enable one: uncomment `env:` and the line(s) you need here, and the
+# matching step further down.
+#
+# env:
+#   COPERNICUS_CREDENTIALS_BASE64: ${{ secrets.COPERNICUS_CREDENTIALS_BASE64 }}
+#   CDSAPI_KEY: ${{ secrets.CDSAPI_KEY }}
+
+jobs:
+  # Unit tests for scripts/. Deliberately NOT gated on check-ready: these test
+  # the template's own tooling, which is identical in every repo built from it,
+  # so they must run on the uninitialised template too. pixi.toml has declared a
+  # `tests` feature with pytest since the beginning and nothing ever invoked it.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0.9.6
+        with:
+          pixi-version: v0.68.1
+          environments: tests
+          locked: true
+          cache: true
+
+      - name: Run tests
+        run: pixi run -e tests test
+
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Single source of truth for "should the pipeline run?" — see
+      # .github/actions/check-ready. Replaces the old per-workflow {{...}} grep
+      # that false-positived on the template's own doc/skill token examples and
+      # silently skipped CI green.
+      - name: Check repository readiness
+        id: guard
+        uses: ./.github/actions/check-ready
+
+      - name: Set up pixi
+        if: steps.guard.outputs.ready == 'true'
+        uses: prefix-dev/setup-pixi@v0.9.6
+        with:
+          pixi-version: v0.68.1
+          locked: true
+          cache: true
+
+      # ----- credentials -----
+      # To enable: add the GitHub secret, uncomment its line in the top-level
+      # `env:` block above, AND uncomment the step here. The `if:` tests `env.`,
+      # never `secrets.` — see the note on the `env:` block for why.
+      #
+      # - name: Set up Copernicus Marine credentials
+      #   if: ${{ env.COPERNICUS_CREDENTIALS_BASE64 != '' && steps.guard.outputs.ready == 'true' }}
+      #   run: |
+      #     mkdir -p ~/.copernicusmarine
+      #     echo "${COPERNICUS_CREDENTIALS_BASE64}" | base64 -d \
+      #       > ~/.copernicusmarine/.copernicusmarine-credentials
+      #
+      # - name: Set up CDS credentials
+      #   if: ${{ env.CDSAPI_KEY != '' && steps.guard.outputs.ready == 'true' }}
+      #   run: |
+      #     echo "url: https://cds.climate.copernicus.eu/api/v2" > ~/.cdsapirc
+      #     echo "key: ${CDSAPI_KEY}" >> ~/.cdsapirc
+
+      # ----- data caching (uncomment + adjust path/key) -----
+      #
+      # - name: Cache input data
+      #   id: cache_data
+      #   uses: actions/cache@v5
+      #   with:
+      #     path: data/raw
+      #     key: input-data-v1
+
+      - name: Run pipeline
+        if: steps.guard.outputs.ready == 'true'
+        run: pixi run snakemake --cores 1
+
+      - name: Upload results
+        if: always() && steps.guard.outputs.ready == 'true'
+        uses: actions/upload-artifact@v5
+        with:
+          name: ci-outputs
+          path: |
+            results/
+            figures/

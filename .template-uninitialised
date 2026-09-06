@@ -1,0 +1,6 @@
+This file marks an uninitialised forrt-replication-template clone.
+
+While it exists, CI / Docker / Jupyter Book skip their pipelines (there is
+nothing real to run yet) and Claude's first-run guard tells the user to run
+/init-template. The /init-template skill deletes this file as its final step,
+which activates all the workflows. Do not delete it by hand — run /init-template.

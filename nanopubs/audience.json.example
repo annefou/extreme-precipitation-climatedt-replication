@@ -1,0 +1,45 @@
+{
+  "_README": "OPTIONAL. Copy this to nanopubs/audience.json (or let the `audience-writer` agent write it) to add plain-language 'For citizens' / 'For schools' tabs to the story page. The generator (scripts/build_story.py) picks up nanopubs/audience.json automatically; delete it and the page returns to the single deterministic 'Record' tab. Every value here is an AI-written RETELLING of the signed record — never a new fact. See .claude/agents/audience-writer.md.",
+
+  "glance": {
+    "_note": "The 'at a glance' graphic. You supply only the lay labels, IN THE SAME ORDER as the record's chains/limbs. The generator colours each row and adds the ✓/✗ from the signed verdict, so the graphic is accurate by construction.",
+    "title": "What this replication found, at a glance",
+    "note": "One honest one-line summary of the composed finding.",
+    "items": [
+      {"label": "<lay term for limb 1>", "sub": "<technical term>", "says": "<e.g. reliable>"},
+      {"label": "<lay term for limb 2>", "sub": "<technical term>", "says": "<e.g. unreliable>"}
+    ]
+  },
+
+  "audiences": [
+    {
+      "id": "citizens",
+      "label": "For citizens",
+      "icon": "users",
+      "level": "General public — no science background needed",
+      "title": "<a plain-language headline, ideally a question>",
+      "lead": "<1–2 sentences: the hook, still only what the record says>",
+      "sections": [
+        {"h": "What was tested", "p": "<one plain paragraph, no jargon>"},
+        {"h": "What was found", "p": "<the verdicts, in everyday words>"},
+        {"h": "Why it matters", "p": "<the recommendation, made concrete>"}
+      ],
+      "closing": "<one-line takeaway>"
+    },
+    {
+      "id": "schools",
+      "label": "For schools",
+      "icon": "graduation-cap",
+      "level": "Secondary school · ages ~13–16",
+      "title": "<a plain-language headline>",
+      "lead": "<the hook, one idea per sentence>",
+      "sections": [
+        {"h": "The question", "p": "<what the replication asked>"},
+        {"h": "The test", "p": "<what was measured and compared>"},
+        {"h": "The result", "p": "<the verdicts, concretely>"},
+        {"h": "The lesson", "p": "<what replication teaches — how science checks itself>"}
+      ],
+      "closing": "<one-line takeaway>"
+    }
+  ]
+}

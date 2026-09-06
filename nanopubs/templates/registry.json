@@ -1,0 +1,53 @@
+{
+  "_comment": [
+    "The Science Live nanopub TEMPLATES that ARE the schema for each FORRT chain step.",
+    "This file is the pin the audit found missing: without it, docs/forrt-form-fields.md",
+    "and the nanopubs/drafts/ skeletons are a hand transcription of a moving target, and",
+    "they drift (validation status 3-vs-5, confidence not captured, comment cap 500-vs-800).",
+    "",
+    "`current` URIs are vendored from ScienceLiveHub/science-live-platform:",
+    "  frontend/src/pages/np/create/components/templates/registry-metadata.ts (TEMPLATE_URI).",
+    "`superseded` URIs are vendored from that file's LEGACY_TEMPLATE_URIS. Those are prior",
+    "template versions that have real published nanopubs on the network and must still be",
+    "recognised. They are NOT the full npx:supersedes chain: most templates supersede several",
+    "throwaway test iterations (AIDA's chain is 11 deep) that were never published from and are",
+    "deliberately excluded. Criterion for inclusion: a prior version with >=1 published nanopub.",
+    "",
+    "fields.snapshot.json pins the extracted field spec of each `current` template.",
+    "scripts/check_template_drift.py compares the live templates against that snapshot;",
+    "re-vendor (script --update) when a template is superseded upstream. See README.md."
+  ],
+  "source": "ScienceLiveHub/science-live-platform · frontend/src/pages/np/create/components/templates/registry-metadata.ts",
+  "steps": {
+    "01_quote":            { "key": "ANNOTATE_QUOTATION",        "current": "https://w3id.org/np/RA24onqmqTMsraJ7ypYFOuckmNWpo4Zv5gsLqhXt7xYPU", "title": "Annotating a paper quotation with personal interpretation" },
+    "01_pico":             { "key": "PICO_RESEARCH_QUESTION",    "current": "https://w3id.org/np/RA5e5XeXy_-aNK5giB7kBAEQslTLVydHeM4YYEzhmEE2w", "title": "Defining a PICO-based research question" },
+    "01_pcc":              { "key": "PCC_RESEARCH_QUESTION",     "current": "https://w3id.org/np/RAmR-xqMgOq3oTJmOVDQFL2p5usID6zqRapizHy0UJb04", "title": "Defining a PCC-based research question" },
+    "02_aida":             { "key": "AIDA_SENTENCE",             "current": "https://w3id.org/np/RALmXhDw3rHcMveTgbv8VtWxijUHwnSqhCmtJFIPKWVaA", "title": "Expressing a statement about research as an AIDA sentence" },
+    "03_claim":            { "key": "FORRT_CLAIM",               "current": "https://w3id.org/np/RAZWyM8D16ya3S1zhCvrG1f0iSpd9-8onVWp0FTvvX7LQ", "title": "Declaring an original claim according to FORRT" },
+    "04_study":            { "key": "FORRT_REPLICATION",         "current": "https://w3id.org/np/RAuLEjPp-4dTvPwMkfHggTto1CgjIftiGRAgHlyeEonjQ", "title": "Declaring a replication study design according to FORRT" },
+    "05_outcome":          { "key": "FORRT_REPLICATION_OUTCOME", "current": "https://w3id.org/np/RA2zljn0Nw9SadppOyxZoh-_Rxosslrq-vYG-p9SttnJE", "title": "Declaring a replication study outcome according to FORRT" },
+    "06_citation":         { "key": "CITATION_CITO",             "current": "https://w3id.org/np/RA43F9EoOuzF0xoNUnCMNyFsfIqlsuWDdPHCnN0wCdCAw", "title": "Declare citations with CiTO" },
+    "07_research_software":{ "key": "RESEARCH_SOFTWARE",         "current": "https://w3id.org/np/RABBzVTxosLGT4YBCfdfNd6LyuOOTe2EVOTtWJMyOoZHk", "title": "Describing research software at summary level - simple" },
+    "08_synthesis":        { "key": "RESEARCH_SYNTHESIS",        "current": "https://w3id.org/np/RApmrqOEr4f5bJC2vayrTnzhwnuEfAU_I4Pdg8K5JxeBw", "title": "Science Live Research Synthesis" }
+  },
+  "superseded": {
+    "02_aida": [
+      "https://w3id.org/np/RA4fmfVFULMP50FqDFX8fEMn66uDF07vXKFXh_L9aoQKE",
+      "http://purl.org/np/RAe39AG652u7Mj8nnuQdhfttfvu5vYTIARJwADGYLMjS0",
+      "https://w3id.org/np/RAMs3KMOjAHN_4a3p5D2VvVE_kialJOKaVS7faQwnKniw"
+    ],
+    "03_claim": [
+      "https://w3id.org/np/RAu5uTahAxc0OLBB3vaGwK3OQDDZV7QuWtDlBk0Ea3bco",
+      "https://w3id.org/np/RAVdxfm3fgFahBItmNmJX_Xkmg1xlimDtoSMjZgNIs2bQ"
+    ],
+    "06_citation": [
+      "https://w3id.org/np/RAX_4tWTyjFpO6nz63s14ucuejd64t2mK3IBlkwZ7jjLo"
+    ],
+    "01_pico": [
+      "https://w3id.org/np/RAfZfE1gbUtc35W7xT12XTO0ptZwycN2-jj7Jow6COAoQ"
+    ],
+    "08_synthesis": [
+      "https://w3id.org/np/RA-ahnCOKnyLdqxUKbmRxFrXXc3PQMoa-_ce-W-J5-GLY"
+    ]
+  }
+}

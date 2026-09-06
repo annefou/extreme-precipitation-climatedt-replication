@@ -1,0 +1,16 @@
+# wayback-urls.txt — external web sources to snapshot in the Internet Archive
+# Wayback Machine on each release (see .github/workflows/wayback.yml).
+#
+# One URL per line. Lines starting with '#' and blank lines are ignored.
+#
+# Use this for Mode-B / paperless claim sources that Software Heritage cannot
+# archive because they are prose, not code: blog posts, design notes, README
+# pages, or documentation that states a claim your replication tests. A Wayback
+# snapshot gives the source immutable fixity at the moment the claim was made,
+# which the nanopub can cite as provenance.
+#
+# The deployed Jupyter Book site is archived automatically — you do NOT need to
+# list it here.
+#
+# Example:
+# https://example.org/blog/the-claim-we-are-testing

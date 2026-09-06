@@ -1,0 +1,60 @@
+cff-version: 1.2.0
+title: "{{REPO_NAME}}"
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - family-names: "{{AUTHOR_FAMILY}}"
+    given-names: "{{AUTHOR_GIVEN}}"
+    orcid: "{{AUTHOR_ORCID}}"
+    affiliation: "{{AUTHOR_AFFILIATION}}"
+repository-code: "https://github.com/{{REPO_ORG}}/{{REPO_NAME}}"
+license: MIT
+version: "0.1.0"
+date-released: "{{RELEASE_DATE}}"
+# Identifiers below are recorded AUTOMATICALLY on each release by
+# .github/workflows/release-identifiers.yml — don't fill them in by hand.
+#
+# `doi:` is the CONCEPT DOI: it means "cite this project" and deliberately
+# resolves to whatever version is latest. That floating behaviour is correct
+# HERE and wrong in a nanopub — see scripts/set_release_identifiers.py.
+#
+# (This used to say "run /init-template again or edit by hand". /init-template
+# deletes itself as its final step, so by the time a DOI existed the skill it
+# named was gone and "edit by hand" was the only path left. Two repos built from
+# this template then recorded the version DOI two different ways — one a
+# structured identifier, one a prose comment. Hence the automation.)
+doi: "{{ZENODO_DOI}}"
+identifiers:
+  - type: doi
+    value: "{{ZENODO_DOI}}"
+    description: "Concept DOI (resolves to the latest version) — cite the project"
+  # On release, the workflow adds:
+  #   - type: doi   value: <version DOI>  "Version DOI for vX.Y.Z — pins this exact release; cite this from nanopubs"
+  #   - type: swh   value: swh:1:rev:<commit>;origin=<repo>  "Software Heritage ID of the vX.Y.Z source tree"
+keywords:
+  - replication
+  - reproducibility
+  - FORRT
+  - nanopublication
+  - Science-Live
+references:
+  - type: article
+    title: "{{PAPER_TITLE}}"
+    authors:
+      - family-names: "{{PAPER_AUTHOR_FAMILY}}"
+        given-names: "{{PAPER_AUTHOR_GIVEN}}"
+    year: "{{PAPER_YEAR}}"
+    doi: "{{PAPER_DOI}}"
+  # Prior FORRT chain this replication extends or qualifies. The URI below
+  # is the canonical persistent pointer to the prior constellation; the
+  # imported summary itself (CHAIN_SUMMARY.md, constellation.json, cached
+  # TriG) is regenerated on demand via `/import-from-nanopub <URL>` and
+  # lives in the gitignored `nanopubs/imported/` directory.
+  #
+  # If your replication does NOT extend a prior chain, init-template
+  # removes this entry. If it does, init-template substitutes the URI
+  # and description below from your responses.
+  - type: generic
+    title: "{{PRIOR_CHAIN_DESCRIPTION}}"
+    url: "{{PRIOR_CHAIN_URI}}"
+    notes: "Apex CiTO Citation of the prior FORRT chain this replication extends. Re-run `/import-from-nanopub <URL>` to repopulate nanopubs/imported/ locally."

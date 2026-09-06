@@ -1,0 +1,23 @@
+version: 1
+project:
+  title: "{{REPO_NAME}}"
+  authors:
+    - name: "{{AUTHOR_NAME}}"
+      orcid: "{{AUTHOR_ORCID}}"
+      affiliations:
+        - "{{AUTHOR_AFFILIATION}}"
+  github: https://github.com/{{REPO_ORG}}/{{REPO_NAME}}
+  license: MIT
+  toc:
+    - file: index.md
+    - file: notebooks/01_data_download.ipynb
+    - file: notebooks/02_data_clean.ipynb
+    - file: notebooks/03_analysis.ipynb
+    - file: notebooks/04_figures.ipynb
+    - file: nanopubs/README.md
+site:
+  title: "{{REPO_NAME}}"
+# IMPORTANT: do NOT set base_url here — MyST silently ignores the key.
+# BASE_URL is set in .github/workflows/jupyter-book.yml as an env var on the
+# `myst build` step, derived from the GitHub repo name. See
+# docs/cicd-conventions.md.

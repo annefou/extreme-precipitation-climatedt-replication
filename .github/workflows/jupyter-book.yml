@@ -1,0 +1,129 @@
+name: Build and Deploy Jupyter Book
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.guard.outputs.ready }}
+      pages_enabled: ${{ steps.pages_check.outputs.pages_enabled }}
+    steps:
+      - uses: actions/checkout@v5
+
+      # Single source of truth — see .github/actions/check-ready.
+      - name: Check repository readiness
+        id: guard
+        uses: ./.github/actions/check-ready
+
+      - name: Check whether GitHub Pages is enabled
+        id: pages_check
+        if: steps.guard.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh api "repos/${{ github.repository }}/pages" >/dev/null 2>&1; then
+            echo "::notice::GitHub Pages is enabled — Jupyter Book will deploy."
+            echo "pages_enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::GitHub Pages is not yet enabled on this repo. Build will run; deploy will be skipped. Enable Pages at https://github.com/${{ github.repository }}/settings/pages (Source: GitHub Actions) to enable deploy on the next push."
+            echo "pages_enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up pixi
+        if: steps.guard.outputs.ready == 'true'
+        uses: prefix-dev/setup-pixi@v0.9.6
+        with:
+          pixi-version: v0.68.1
+          locked: true
+          cache: true
+          environments: docs
+
+      - name: Convert .py notebooks to .ipynb
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          for nb in notebooks/*.py; do
+            pixi run jupytext --to notebook "$nb"
+          done
+
+      # Glob, not a hard-coded list — new notebooks are picked up automatically.
+      - name: Execute notebooks
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          for nb in notebooks/*.ipynb; do
+            echo "::group::Executing $nb"
+            pixi run jupyter execute --inplace "$nb"
+            echo "::endgroup::"
+          done
+
+      - name: Build MyST site
+        if: steps.guard.outputs.ready == 'true'
+        env:
+          # MyST silently ignores `base_url` in myst.yml — only this env var
+          # works. See docs/cicd-conventions.md.
+          BASE_URL: /${{ github.event.repository.name }}
+        run: pixi run -e docs myst build --html
+
+      # The reader-facing story page (scripts/build_story.py) rides the SAME Pages
+      # site as the book, served at /blog/. Best-effort: it needs the chain to be
+      # published (an apex in nanopubs/PUBLISHED.md) and the SCIENCELIVE_API_KEY
+      # secret, so it is skipped (never fails the book deploy) when either is absent.
+      # Re-running this workflow (Actions → Run workflow) is how you "regenerate"
+      # the blog from the current state of the nanopub network.
+      - name: Generate the reader-facing story page (best-effort)
+        if: steps.guard.outputs.ready == 'true'
+        continue-on-error: true
+        env:
+          SCIENCELIVE_API_KEY: ${{ secrets.SCIENCELIVE_API_KEY }}
+          # Optional: set a repo variable SCIENCELIVE_API to point at a non-prod
+          # constellation; unset falls back to production inside the script.
+          SCIENCELIVE_API: ${{ vars.SCIENCELIVE_API }}
+        run: |
+          if [ -n "$SCIENCELIVE_API_KEY" ]; then
+            pixi run -e docs build-story \
+              && echo "::notice::Story page rebuilt from the live network." \
+              || echo "::warning::build-story did not refresh the page (chain not published yet?) — serving the committed blog/ if present."
+          else
+            echo "::notice::SCIENCELIVE_API_KEY not set — serving the committed blog/ if present."
+          fi
+          # Serve whatever blog/index.html exists (freshly built, or a committed
+          # snapshot) so the page shows even when CI cannot rebuild it. No blog/ at
+          # all (e.g. chain not published) -> the book simply deploys without /blog/.
+          if [ -f blog/index.html ]; then
+            mkdir -p _build/html/blog
+            cp -r blog/. _build/html/blog/
+            echo "::notice::Story page included on the Pages site at /blog/."
+          else
+            echo "::notice::No blog/index.html yet — deploying the book without /blog/."
+          fi
+
+      - name: Upload pages artifact
+        if: steps.guard.outputs.ready == 'true'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: _build/html
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.ready == 'true' && needs.build.outputs.pages_enabled == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

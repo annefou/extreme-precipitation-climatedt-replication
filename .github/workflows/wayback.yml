@@ -1,0 +1,115 @@
+name: Archive web sources in the Wayback Machine
+
+# On release (and via workflow_dispatch), submit this project's web sources to the
+# Internet Archive Wayback Machine ("Save Page Now") for an immutable, timestamped
+# snapshot. Two kinds of source are captured:
+#   1. The deployed MyST / Jupyter Book site. The repo *source* is preserved in
+#      Software Heritage (swh-save.yml) and Zenodo (docker.yml), but the rendered
+#      *site* is not — this captures it.
+#   2. Any URLs listed in `wayback-urls.txt` at the repo root (one per line, '#'
+#      comments allowed). Use this for Mode-B / paperless claim sources — blogs,
+#      design notes, README pages — that Software Heritage cannot archive because
+#      they are prose, not code.
+#
+# Uses anonymous Save Page Now (no secrets); it is rate-limited. If you hit limits,
+# switch to the authenticated SPN2 API: add Internet Archive S3-style keys as the
+# secrets IA_ACCESS_KEY / IA_SECRET_KEY and an
+#   -H "Authorization: LOW ${IA_ACCESS_KEY}:${IA_SECRET_KEY}"
+# header to the curl call below.
+#
+# STATUS: written, NOT yet executed. Validate via Actions -> Run workflow and check
+# the run log + the resulting web.archive.org snapshot URLs.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wayback:
+    runs-on: ubuntu-latest
+    # NO continue-on-error. This job is *triggered by* release:published — the
+    # release already exists by the time it runs, so it cannot block anything.
+    # All continue-on-error bought was concealment.
+    steps:
+      - uses: actions/checkout@v5
+
+      # Single source of truth — see .github/actions/check-ready. A Wayback
+      # snapshot is permanent, and an unready repo has no deployed Pages site to
+      # snapshot: submitting anyway captures a 404 forever under this release's
+      # timestamp. On a release event the guard fails hard rather than skipping
+      # (see the action's Tripwire 1).
+      - name: Check repository readiness
+        id: guard
+        uses: ./.github/actions/check-ready
+
+      - name: Build URL list
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          repo="${{ github.repository }}"          # owner/name
+          owner="${repo%%/*}"
+          name="${repo#*/}"
+          pages="https://${owner}.github.io/${name}/"
+          {
+            echo "${pages}"
+            if [ -f wayback-urls.txt ]; then
+              grep -vE '^[[:space:]]*(#|$)' wayback-urls.txt || true
+            fi
+          } > /tmp/wayback-urls.txt
+          echo "URLs to archive:"; cat /tmp/wayback-urls.txt
+
+      # A Wayback snapshot is permanent. Save Page Now's HTTP status reports
+      # whether the *request* was taken, NOT whether the target resolves — so
+      # submitting a dead URL cheerfully archives a 404 forever under this
+      # release's timestamp. The Pages site is the usual victim: it is derived
+      # from the repo name, and jupyter-book.yml deploys on push (not on
+      # release), so a first release can easily precede the site existing.
+      # Check every URL resolves BEFORE anything is submitted.
+      - name: Verify URLs resolve before archiving
+        if: steps.guard.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -uo pipefail
+          bad=0
+          while IFS= read -r url; do
+            [ -z "${url}" ] && continue
+            code=$(curl -sS -o /dev/null -L --max-time 30 -w '%{http_code}' \
+              -A "forrt-replication-template wayback workflow" "${url}") || code="000"
+            if [ "${code}" -ge 200 ] && [ "${code}" -lt 400 ]; then
+              echo "  ok   HTTP ${code}  ${url}"
+            else
+              echo "::error::HTTP ${code} for ${url} — refusing to archive it. A Wayback snapshot is permanent, so archiving a dead URL would preserve the error page, not the source. If this is the Jupyter Book site, check Pages is enabled and jupyter-book.yml has deployed; if it came from wayback-urls.txt, fix or remove the entry."
+              bad=1
+            fi
+          done < /tmp/wayback-urls.txt
+          exit "${bad}"
+
+      - name: Submit to Wayback Machine (Save Page Now)
+        if: steps.guard.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -uo pipefail
+          bad=0
+          while IFS= read -r url; do
+            [ -z "${url}" ] && continue
+            echo "::group::Archiving ${url}"
+            code=$(curl -sS -o /dev/null -w '%{http_code}' \
+              -A "forrt-replication-template wayback workflow" \
+              "https://web.archive.org/save/${url}") || code="000"
+            echo "HTTP ${code} for ${url}"
+            if [ "${code}" -ge 200 ] && [ "${code}" -lt 400 ]; then
+              echo "Latest snapshot: https://web.archive.org/web/2/${url}"
+            else
+              # 429 = rate-limited by the anonymous Save Page Now endpoint. That
+              # is transient and re-runnable, but it still means this URL is not
+              # archived — so it must not report green.
+              echo "::error::Save Page Now returned HTTP ${code} for ${url} — NOT archived. If 429, the anonymous endpoint is rate-limited: re-run this workflow (Actions -> Run workflow) later, or switch to the authenticated SPN2 API (see the header of this file)."
+              bad=1
+            fi
+            echo "::endgroup::"
+            sleep 5   # be polite to the Internet Archive endpoint
+          done < /tmp/wayback-urls.txt
+          exit "${bad}"

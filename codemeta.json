@@ -1,0 +1,49 @@
+{
+  "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+  "@type": "SoftwareSourceCode",
+  "name": "{{REPO_NAME}}",
+  "description": "{{REPO_DESCRIPTION}}",
+  "version": "0.1.0",
+  "dateCreated": "{{RELEASE_DATE}}",
+  "dateModified": "{{RELEASE_DATE}}",
+  "license": "https://spdx.org/licenses/MIT",
+  "codeRepository": "https://github.com/{{REPO_ORG}}/{{REPO_NAME}}",
+  "identifier": "{{ZENODO_DOI}}",
+  "@id": "{{ZENODO_DOI}}",
+  "programmingLanguage": {
+    "@type": "ComputerLanguage",
+    "name": "Python",
+    "version": "3.12"
+  },
+  "operatingSystem": ["Linux", "macOS"],
+  "author": [
+    {
+      "@type": "Person",
+      "givenName": "{{AUTHOR_GIVEN}}",
+      "familyName": "{{AUTHOR_FAMILY}}",
+      "@id": "{{AUTHOR_ORCID}}",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "{{AUTHOR_AFFILIATION}}"
+      }
+    }
+  ],
+  "keywords": [
+    "replication",
+    "reproducibility",
+    "FORRT",
+    "nanopublication",
+    "Science-Live"
+  ],
+  "referencePublication": {
+    "@type": "ScholarlyArticle",
+    "name": "{{PAPER_TITLE}}",
+    "datePublished": "{{PAPER_YEAR}}",
+    "@id": "https://doi.org/{{PAPER_DOI}}"
+  },
+  "isPartOf": {
+    "@type": "Organization",
+    "name": "Science Live",
+    "url": "https://platform.sciencelive4all.org"
+  }
+}

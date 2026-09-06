@@ -1,0 +1,139 @@
+{
+  "@context": "https://w3id.org/ro/crate/1.2/context",
+  "@graph": [
+    {
+      "@type": "CreativeWork",
+      "@id": "ro-crate-metadata.json",
+      "conformsTo": [
+        { "@id": "https://w3id.org/ro/crate/1.2" },
+        { "@id": "https://w3id.org/ro/wfrun/process/0.5" },
+        { "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0" }
+      ],
+      "about": { "@id": "./" }
+    },
+    {
+      "@id": "./",
+      "@type": ["Dataset", "ResearchObject"],
+      "name": "{{REPO_NAME}}",
+      "description": "{{REPO_DESCRIPTION}}",
+      "datePublished": "{{RELEASE_DATE}}",
+      "license": { "@id": "https://spdx.org/licenses/MIT" },
+      "publisher": { "@id": "{{AUTHOR_ORCID}}" },
+      "author": [{ "@id": "{{AUTHOR_ORCID}}" }],
+      "mainEntity": { "@id": "Snakefile" },
+      "hasPart": [
+        { "@id": "Snakefile" },
+        { "@id": "pixi.toml" },
+        { "@id": "pixi.lock" },
+        { "@id": "Dockerfile" },
+        { "@id": "notebooks/01_data_download.py" },
+        { "@id": "notebooks/02_data_clean.py" },
+        { "@id": "notebooks/03_analysis.py" },
+        { "@id": "notebooks/04_figures.py" },
+        { "@id": "paper/" },
+        { "@id": "data/" },
+        { "@id": "results/" },
+        { "@id": "figures/" },
+        { "@id": "nanopubs/PUBLISHED.md" }
+      ],
+      "citation": [
+        { "@id": "https://doi.org/{{PAPER_DOI}}" }
+      ]
+    },
+    {
+      "@id": "{{AUTHOR_ORCID}}",
+      "@type": "Person",
+      "name": "{{AUTHOR_NAME}}",
+      "affiliation": "{{AUTHOR_AFFILIATION}}"
+    },
+    {
+      "@id": "Snakefile",
+      "@type": ["File", "SoftwareSourceCode", "ComputationalWorkflow"],
+      "name": "Replication pipeline",
+      "description": "Snakemake workflow orchestrating data download, cleaning, analysis, and figure generation.",
+      "programmingLanguage": { "@id": "https://w3id.org/workflowhub/workflow-ro-crate#snakemake" },
+      "input": [{ "@id": "paper/" }, { "@id": "pixi.toml" }, { "@id": "pixi.lock" }],
+      "output": [{ "@id": "results/" }, { "@id": "figures/" }, { "@id": "nanopubs/PUBLISHED.md" }]
+    },
+    {
+      "@id": "https://w3id.org/workflowhub/workflow-ro-crate#snakemake",
+      "@type": "ComputerLanguage",
+      "name": "Snakemake",
+      "url": "https://snakemake.readthedocs.io/"
+    },
+    {
+      "@id": "pixi.toml",
+      "@type": ["File", "ConfigurationFile"],
+      "name": "Pixi workspace manifest (declared dependencies, features, tasks)",
+      "encodingFormat": "application/toml"
+    },
+    {
+      "@id": "pixi.lock",
+      "@type": ["File", "ConfigurationFile"],
+      "name": "Pixi per-platform lockfile (every package pinned to an exact build hash)",
+      "encodingFormat": "application/yaml"
+    },
+    {
+      "@id": "Dockerfile",
+      "@type": ["File", "ConfigurationFile"],
+      "name": "Container build specification",
+      "encodingFormat": "text/x-dockerfile"
+    },
+    {
+      "@id": "notebooks/01_data_download.py",
+      "@type": ["File", "SoftwareSourceCode", "Notebook"],
+      "name": "01 — Data download",
+      "programmingLanguage": "Python"
+    },
+    {
+      "@id": "notebooks/02_data_clean.py",
+      "@type": ["File", "SoftwareSourceCode", "Notebook"],
+      "name": "02 — Data clean",
+      "programmingLanguage": "Python"
+    },
+    {
+      "@id": "notebooks/03_analysis.py",
+      "@type": ["File", "SoftwareSourceCode", "Notebook"],
+      "name": "03 — Analysis",
+      "programmingLanguage": "Python"
+    },
+    {
+      "@id": "notebooks/04_figures.py",
+      "@type": ["File", "SoftwareSourceCode", "Notebook"],
+      "name": "04 — Figures",
+      "programmingLanguage": "Python"
+    },
+    {
+      "@id": "paper/",
+      "@type": "Dataset",
+      "name": "Source paper PDF (drop yours here)"
+    },
+    {
+      "@id": "data/",
+      "@type": "Dataset",
+      "name": "Downloaded input data (gitignored; populated by 01_data_download.py)"
+    },
+    {
+      "@id": "results/",
+      "@type": "Dataset",
+      "name": "Analysis output artefacts"
+    },
+    {
+      "@id": "figures/",
+      "@type": "Dataset",
+      "name": "Curated figures used in the Jupyter Book"
+    },
+    {
+      "@id": "nanopubs/PUBLISHED.md",
+      "@type": ["File", "TextObject"],
+      "name": "Registry of published FORRT nanopub URIs",
+      "description": "URIs of the published Quote / AIDA / FORRT Claim / Replication Study / Replication Outcome / CiTO Citation steps."
+    },
+    {
+      "@id": "https://doi.org/{{PAPER_DOI}}",
+      "@type": "ScholarlyArticle",
+      "name": "{{PAPER_TITLE}}",
+      "datePublished": "{{PAPER_YEAR}}"
+    }
+  ]
+}

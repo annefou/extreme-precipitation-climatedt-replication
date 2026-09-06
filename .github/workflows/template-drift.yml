@@ -1,0 +1,56 @@
+# Detect when a FORRT chain-step template drifts from the committed snapshot.
+#
+# The templates in nanopubs/templates/registry.json ARE the schema for each
+# chain step. nanopubs/templates/fields.snapshot.json pins their field specs.
+# This job fetches the LIVE templates from the nanopub network and diffs them
+# against the snapshot — so a template superseded upstream shows up as a loud,
+# reviewable failure instead of slowly rotting docs/forrt-form-fields.md and the
+# nanopubs/drafts/ skeletons.
+#
+# It is deliberately NOT part of ci.yml: the per-PR gate is network-free (see
+# lint.yml), and this is the one networked check. So it runs on a schedule and
+# on demand only. The extractor it exercises is covered offline by
+# tests/test_template_fields.py in the ordinary test job.
+#
+# This is a MAINTAINER check for the template repo itself. A replication repo
+# created from this template froze its snapshot at init time and has no reason to
+# track upstream template drift — so the job is guarded to run only in the
+# canonical template repo. In every derived repo the schedule still fires but the
+# job is SKIPPED (neutral, never red), so it can't nag users with a monthly
+# failure. Change the repository below if you fork the template under a new owner.
+#
+# On drift: run `pixi run -e tests python scripts/check_template_drift.py --update`
+# locally, reconcile docs/forrt-form-fields.md with the diff, and commit the
+# regenerated snapshot.
+name: Template drift
+
+on:
+  schedule:
+    # 06:17 UTC on the 1st of each month (offset from :00 to dodge cron spikes).
+    - cron: "17 6 1 * *"
+  workflow_dispatch: {}
+
+# The template network is a shared external service; never let two runs collide.
+concurrency:
+  group: template-drift
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    # Maintainer-only: skip (neutral, not failed) in every repo created from the
+    # template, so the inherited schedule never nags users with a red run.
+    if: github.repository == 'ScienceLiveHub/forrt-replication-template'
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0.9.6
+        with:
+          pixi-version: v0.68.1
+          environments: tests
+          locked: true
+          cache: true
+
+      - name: Check templates against the snapshot
+        run: pixi run -e tests check-templates

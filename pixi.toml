@@ -1,0 +1,103 @@
+# Single source of truth for the runtime — used by local dev, Docker, and CI.
+# Add every dependency a notebook imports here. Local "kitchen-sink" envs
+# (e.g. pangeo) hide missing deps; CI builds strictly from this file and will
+# silently produce empty notebook cells if anything is missing.
+#
+# pixi.lock (committed alongside this file) pins every package to an exact
+# build hash per platform. Regenerate it with `pixi install` after editing
+# this file; commit both files in the same commit.
+
+[workspace]
+name = "{{REPO_NAME}}"
+# bioconda hosts snakemake (and downstream rule-engine ecosystem); conda-forge
+# is the priority channel for everything else.
+channels = ["conda-forge", "bioconda"]
+platforms = ["linux-64", "osx-arm64", "win-64"]
+
+[dependencies]
+python = "3.12.*"
+# --- core scientific stack ---
+numpy = "*"
+pandas = ">=2.0"
+xarray = ">=2024.6"
+scipy = "*"
+matplotlib = "*"
+pyarrow = "*"
+# Pillow downscales + base64-inlines the headline figure into the reader-facing
+# story page (scripts/build_story.py), so the generated HTML is self-contained.
+pillow = "*"
+# --- notebook execution + Jupyter Book ---
+jupytext = "*"
+jupyterlab = "*"
+nbclient = "*"
+ipykernel = "*"
+# --- pipeline driver ---
+snakemake = "*"
+# --- replace/extend with the deps your replication needs ---
+# Examples (uncomment as needed):
+# statsmodels = "*"          # GLM/GLMM regression
+# scikit-learn = "*"         # classical ML
+# pyproj = "*"               # CRS + map projections
+# cartopy = "*"              # geographic plotting
+# netcdf4 = "*"              # NetCDF I/O — preferred over .npz for arrays (see DOMAIN.md)
+# zarr = "*"                 # Zarr — preferred for arrays >2 GB or cloud-archived (see DOMAIN.md)
+# cdsapi = "*"               # Copernicus Climate Data Store
+# copernicusmarine = "*"     # Copernicus Marine Service
+# healpix-geo = "*"          # HEALPix on geo data — preferred (use nest=True — see DOMAIN.md)
+# healpy = "*"               # HEALPix on pure-sphere (astrophysics) only
+# rasterio = "*"             # raster I/O
+# geopandas = "*"            # vector I/O
+# dask = "*"                 # out-of-core / parallel
+
+# Pip-only deps go in [pypi-dependencies]. Conda-forge is preferred where available.
+# [pypi-dependencies]
+# pygbif = "*"               # GBIF occurrences
+# polytope-client = "*"      # Destination Earth Climate DT
+# earthkit-data = "*"
+
+[feature.docs.dependencies]
+mystmd = "*"
+
+[feature.tests.dependencies]
+pytest = "*"
+# ruamel.yaml round-trips YAML *with* its comments. scripts/set_release_identifiers.py
+# rewrites CITATION.cff in place, and pyyaml would silently delete every
+# explanatory comment in it.
+"ruamel.yaml" = "*"
+# rdflib parses the nanopub TEMPLATE TriG that IS the schema for each FORRT chain
+# step. scripts/template_fields.py extracts the field spec from it; the offline
+# tests and scripts/check_template_drift.py both need it. See nanopubs/templates/.
+rdflib = "*"
+
+[environments]
+default = { solve-group = "default" }
+docs = { features = ["docs"], solve-group = "default" }
+tests = { features = ["tests"], solve-group = "default" }
+
+[tasks]
+run = "snakemake --cores 1"
+book = "myst build --html"
+lab = "jupyter lab"
+
+# The `tests` feature and environment already existed here; nothing declared a
+# task and no workflow ever invoked pytest, so it was scaffolding that had never
+# run. Wired into ci.yml.
+#   pixi run -e tests test
+[feature.tests.tasks]
+test = "pytest tests/ -q"
+# Compares the live FORRT templates against nanopubs/templates/fields.snapshot.json.
+# Networked, so NOT in the per-PR gate — run on demand or on schedule
+# (.github/workflows/template-drift.yml). `--update` re-vendors the snapshot.
+check-templates = "python scripts/check_template_drift.py"
+# Builds nanopubs/chain-draft.json (the pre-filled hand-off for the Science Live
+# FORRT-chain wizard) from CITATION.cff + the drafts + PUBLISHED.md. Offline, no
+# Claude. See docs/chain-draft-contract.md. Run after drafting, then commit the file.
+build-chain-draft = "python scripts/build_chain_draft.py"
+sync-drafts = "python scripts/sync_draft_skeletons.py"
+# Generates the reader-facing story page (blog/index.html) from the PUBLISHED
+# chain: fetches the constellation for the apex in nanopubs/PUBLISHED.md (the
+# Research Synthesis if published, else the Replication Outcome) and renders a
+# self-contained HTML article — nothing invented, every value from the signed
+# nanopubs. Needs SCIENCELIVE_API_KEY. Deterministic: commit blog/ and publish
+# it wherever the repo already publishes (e.g. GitHub Pages). See docs/story-page.md.
+build-story = "python scripts/build_story.py"

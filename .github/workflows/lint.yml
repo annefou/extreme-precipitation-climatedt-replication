@@ -1,0 +1,131 @@
+name: Lint conventions
+
+# Mechanical enforcement of the repo conventions that were previously stated in
+# prose and enforced by asking a human (or a model) to remember them. Every check
+# here already existed as a copy-paste snippet in docs/cicd-conventions.md
+# § "Audit before push" or as a "never do X" rule in CLAUDE.md / DOMAIN.md —
+# see the per-check comments for where each one is written down.
+#
+# Design notes:
+#   * Runs on the UNINITIALISED template too, so the template lints itself. Only
+#     the placeholder-token check is gated on initialisation (the template
+#     legitimately ships {{...}} tokens until /init-template runs).
+#   * Collects every failure and reports them together. A linter that stops at
+#     the first problem makes you re-run it N times.
+#   * Pure grep — no pixi, no network, no deps. Seconds, not minutes.
+#
+# Deliberately NOT checked here: "every notebook import is in pixi.toml"
+# (docs/cicd-conventions.md:232). The snippet there only *lists* imports for a
+# human to eyeball; automating it needs stdlib filtering and an import-name ->
+# package-name map (`import yaml` -> `pyyaml`), which is exactly the kind of
+# check that cries wolf. Left to a human until it can be done without false
+# positives. `pixi.lock` freshness is already enforced: ci.yml's setup-pixi runs
+# with `locked: true`.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check conventions
+        shell: bash
+        run: |
+          set -uo pipefail
+          fail=0
+
+          note() { echo "  ok   $1"; }
+          bad()  { echo "::error::$1"; fail=1; }
+
+          echo "--- notebooks ---"
+
+          # NOTE on the `^[^#]*` prefix used by the two checks below: the
+          # notebooks legitimately DISCUSS these anti-patterns in comments — e.g.
+          # notebooks/04_figures.py carries "# `matplotlib.use('Agg')` — it
+          # blocks inline display." A naive grep flags that warning as a
+          # violation, and a linter that fires on a comment telling you not to do
+          # the thing is a linter people learn to ignore. `^[^#]*` requires the
+          # match to appear with no `#` earlier on the line, i.e. in real code.
+
+          # CLAUDE.md:107, docs/cicd-conventions.md:110-112, notebooks/README.md:34,
+          # .claude/agents/replication-coder.md:41 all prohibit this. Four
+          # statements, zero enforcement, until now.
+          if ls notebooks/*.py >/dev/null 2>&1 && grep -nE "^[^#]*matplotlib\.use" notebooks/*.py; then
+            bad "matplotlib.use(...) found in notebooks/ (see the grep hits above). It blocks inline plot display, which builds an empty Jupyter Book. Use plt.show() after fig.savefig() instead. Prohibited by CLAUDE.md § Phase 2."
+          else
+            note "no matplotlib.use() in notebooks/ code"
+          fi
+
+          # DOMAIN.md:31,38-40,66 — .npz is pickle-based and drops dims, units
+          # and CRS, so it is not a self-describing artefact.
+          if ls notebooks/*.py >/dev/null 2>&1 && grep -nE "^[^#]*(\.npz|np\.savez)" notebooks/*.py; then
+            bad ".npz / np.savez found in notebooks/ (see the grep hits above). It drops dimension labels, units and CRS metadata. Use NetCDF (<=2 GB) or Zarr instead — DOMAIN.md § Data formats."
+          else
+            note "no .npz / np.savez in notebooks/ code"
+          fi
+
+          echo "--- jupyter book ---"
+
+          # docs/cicd-conventions.md:69-78,239 — the TOC must point at the
+          # EXECUTED .ipynb, not the jupytext .py source, or the book renders
+          # without outputs.
+          if grep -nE "\.py" myst.yml; then
+            bad "myst.yml references .py (see the hits above). The TOC must list the executed notebooks/*.ipynb, not the jupytext .py sources, or the book builds with empty cells — docs/cicd-conventions.md § myst.yml."
+          else
+            note "myst.yml TOC references .ipynb, not .py"
+          fi
+
+          # docs/cicd-conventions.md:52-63,242 — MyST silently ignores base_url
+          # in myst.yml, so it MUST come from the workflow env or every link on
+          # the deployed site 404s.
+          if grep -q "BASE_URL" .github/workflows/jupyter-book.yml; then
+            note "jupyter-book.yml sets BASE_URL"
+          else
+            bad "jupyter-book.yml does not set BASE_URL. MyST ignores base_url in myst.yml, so without the env var every link on the deployed site breaks — docs/cicd-conventions.md § BASE_URL."
+          fi
+
+          # docs/cicd-conventions.md:106,245 — executing a hardcoded list means a
+          # newly added notebook is silently never run.
+          if grep -q "notebooks/\*.ipynb" .github/workflows/jupyter-book.yml; then
+            note "jupyter-book.yml executes notebooks via glob"
+          else
+            bad "jupyter-book.yml does not execute notebooks/*.ipynb via a glob. A hardcoded list silently skips newly added notebooks — docs/cicd-conventions.md § Notebook execution."
+          fi
+
+          echo "--- placeholder tokens ---"
+
+          # CLAUDE.md:62. Only meaningful once /init-template has run: before
+          # that the tokens are the point. Scoped to the files that must be
+          # substituted — NOT a repo-wide grep, because docs/ and .claude/
+          # legitimately document the token system, and grepping them is what
+          # used to cause false-positive skips and silent-green CI
+          # (see .github/actions/check-ready).
+          if [ -f .template-uninitialised ]; then
+            note "skipped — template not initialised yet (sentinel present)"
+          else
+            for f in CITATION.cff codemeta.json myst.yml pixi.toml Dockerfile ro-crate-metadata.json; do
+              [ -f "$f" ] || continue
+              if grep -nE "\{\{[A-Z_]+\}\}" "$f"; then
+                bad "$f still contains unsubstituted {{...}} placeholder tokens (see the hits above). A release would ship these into Zenodo, Software Heritage and the RO-Crate permanently. Re-run the substitution or fix by hand — CLAUDE.md § Phase 0."
+              else
+                note "$f has no leftover tokens"
+              fi
+            done
+          fi
+
+          echo
+          if [ "$fail" -ne 0 ]; then
+            echo "Convention checks FAILED — see the ::error:: annotations above."
+            exit 1
+          fi
+          echo "All convention checks passed."

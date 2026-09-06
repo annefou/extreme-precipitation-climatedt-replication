@@ -120,7 +120,12 @@ def write_window(raw_dir: Path, window: str, seed: int) -> list[Path]:
             units=climatedt.PRECIP_UNITS,
             long_name="Mean total precipitation rate (hourly mean)",
         )
-        out = raw_dir / f"precip_{window}_{year}.nc"
+        # Named with a MONTH field like the real files (`precip_hist_199103.nc`)
+        # rather than a bare year, so a synthetic file can never be mistaken for
+        # a real one at a glance -- month 00 does not exist. The provenance
+        # attribute is the authority, and 02_data_clean.py refuses outright if
+        # the directory holds both kinds; this is the second line of defence.
+        out = raw_dir / f"precip_{window}_{year}00.nc"
         out.parent.mkdir(parents=True, exist_ok=True)
         ds.to_netcdf(out)
         written.append(out)

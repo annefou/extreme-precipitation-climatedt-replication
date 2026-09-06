@@ -65,14 +65,31 @@ for window in climatedt.WINDOWS:
     available[window] = files
     print(f"{window:8s} {len(files)} yearly file(s): {files[0].name} .. {files[-1].name}")
 
-provenances = set()
+provenances: dict[str, list[str]] = {}
 for files in available.values():
     for f in files:
         with xr.open_dataset(f) as ds:
-            provenances.add(ds.attrs.get("provenance", "unknown"))
-PROVENANCE = (
-    "mixed:" + "+".join(sorted(provenances)) if len(provenances) > 1 else provenances.pop()
-)
+            provenances.setdefault(ds.attrs.get("provenance", "unknown"), []).append(f.name)
+
+# MIXED PROVENANCE IS FATAL, not a warning. Synthetic and real files live in the
+# same directory and both match the same glob, so a leftover smoke-test file
+# from a run without credentials will silently join the real retrieval and
+# contribute its invented extremes to the GEV fit. That happened during
+# development, and a warning would have scrolled past. The result of this
+# pipeline is a signed, permanent nanopublication; there is no version of
+# "partly synthetic" that is publishable.
+if len(provenances) > 1:
+    listing = "\n".join(
+        f"  {prov}: {len(names)} file(s), e.g. {names[0]}"
+        for prov, names in sorted(provenances.items())
+    )
+    raise ValueError(
+        f"data/raw holds files from more than one provenance:\n{listing}\n"
+        "Delete whichever set is not wanted before continuing. Synthetic files "
+        "are written only when no DestinE credential is present."
+    )
+
+PROVENANCE = next(iter(provenances))
 print(f"\nprovenance: {PROVENANCE}")
 if PROVENANCE != "destine-climate-dt":
     print(

@@ -67,6 +67,20 @@ def test_synthetic_data_is_stamped_so_it_cannot_be_mistaken_for_a_result(tmp_pat
         assert "SYNTHETIC" in ds.attrs["warning"]
 
 
+def test_synthetic_filenames_cannot_be_confused_with_real_months(tmp_path):
+    # Real files are precip_<window>_<YYYYMM>.nc with a valid month; synthetic
+    # ones use month 00, which does not exist. Both match 02's glob, so this is
+    # a readability guard, not the safety mechanism -- the provenance check in
+    # 02_data_clean.py is that. During development a set of synthetic yearly
+    # files sat unnoticed beside the real monthly ones.
+    synthetic_climatedt.write_all(tmp_path)
+    for path in tmp_path.glob("precip_*.nc"):
+        stamp = path.stem.rsplit("_", 1)[-1]
+        assert len(stamp) == 6 and stamp.endswith("00"), path.name
+    # And they still match the glob 02 uses, so the provenance check sees them.
+    assert list(tmp_path.glob("precip_hist_*.nc"))
+
+
 def test_annual_maxima_grow_with_duration(annual_maxima):
     for window, per_duration in annual_maxima.items():
         medians = [np.nanmedian(per_duration[d]) for d in climatedt.DURATIONS_H]

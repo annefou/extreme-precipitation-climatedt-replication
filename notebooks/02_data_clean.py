@@ -188,7 +188,7 @@ combined["duration"].attrs.update(units="h", long_name="Accumulation duration")
 #
 # The one place the ellipsoid does bite is the **domain mask**. Polytope's
 # polygon clip is applied on the sphere, and the authalic and geodetic latitudes
-# of the same point differ by up to ~0.19° (~21 km at mid-latitudes). Cells near
+# of the same point differ by up to 0.128° (~14 km, peaking near 45°). Cells near
 # the German border can therefore fall on the other side of the boundary under
 # the two conventions. `scripts/geometry.py` measures how many; it is a
 # sensitivity number to report in the Study's Deviations, not a correction to

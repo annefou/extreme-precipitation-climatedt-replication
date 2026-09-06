@@ -8,8 +8,8 @@ a smoothing kernel could use to damp the very extremes being measured.
 
 The ellipsoid does matter in exactly one place: the **domain mask**. Polytope
 applies its polygon clip on the sphere the Climate DT's HEALPix is defined on.
-The authalic and geodetic latitudes of the same point differ by up to ~0.19°
-(~21 km at mid-latitudes), so cells near the German border can fall on the
+The authalic and geodetic latitudes of the same point differ by up to 0.128°
+(~14 km, peaking near 45°), so cells near the German border can fall on the
 other side of the boundary under the two conventions. `mask_sensitivity()`
 measures how many do. That is a number to report in the Replication Study's
 Deviations field, not a correction to apply.

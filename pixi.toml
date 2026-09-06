@@ -33,27 +33,30 @@ nbclient = "*"
 ipykernel = "*"
 # --- pipeline driver ---
 snakemake = "*"
-# --- replace/extend with the deps your replication needs ---
-# Examples (uncomment as needed):
-# statsmodels = "*"          # GLM/GLMM regression
-# scikit-learn = "*"         # classical ML
-# pyproj = "*"               # CRS + map projections
-# cartopy = "*"              # geographic plotting
-# netcdf4 = "*"              # NetCDF I/O — preferred over .npz for arrays (see DOMAIN.md)
-# zarr = "*"                 # Zarr — preferred for arrays >2 GB or cloud-archived (see DOMAIN.md)
-# cdsapi = "*"               # Copernicus Climate Data Store
-# copernicusmarine = "*"     # Copernicus Marine Service
-# healpix-geo = "*"          # HEALPix on geo data — preferred (use nest=True — see DOMAIN.md)
-# healpy = "*"               # HEALPix on pure-sphere (astrophysics) only
-# rasterio = "*"             # raster I/O
-# geopandas = "*"            # vector I/O
-# dask = "*"                 # out-of-core / parallel
+# --- storage: DOMAIN.md § Data formats (never .npz) ---
+# netCDF4 throughout. The raw hourly retrieval is ~6 GB per 20-year window but
+# is written one calendar year at a time (~300 MB each), so every individual
+# file stays well under the 2 GB point where DOMAIN.md switches to Zarr.
+# dask backs the open_mfdataset over those 20 yearly files.
+netcdf4 = "*"
+dask = "*"
+# --- No HEALPix library, deliberately ---
+# DOMAIN.md defaults to healpix-geo for geographic HEALPix work, and there is
+# none to do here: the Climate DT is *delivered* on HEALPix and this pipeline
+# never regrids it, so there is no resampling kernel that could damp the very
+# extremes being measured. The one ellipsoid-aware calculation needed — the
+# authalic latitude mapping behind the domain-mask sensitivity check — is a
+# dozen lines in scripts/geometry.py, unit tested against published values.
+# Adding a dependency nothing imports would be worse than not having it.
 
 # Pip-only deps go in [pypi-dependencies]. Conda-forge is preferred where available.
-# [pypi-dependencies]
-# pygbif = "*"               # GBIF occurrences
-# polytope-client = "*"      # Destination Earth Climate DT
-# earthkit-data = "*"
+# earthkit-data drives the Polytope retrieval in 01_data_download.py and decodes
+# the CoverageJSON the polygon feature returns (via covjsonkit). Only
+# 01_data_download.py imports them, and only when DestinE credentials are present.
+[pypi-dependencies]
+earthkit-data = "*"
+covjsonkit = "*"
+polytope-client = "*"
 
 [feature.docs.dependencies]
 mystmd = "*"

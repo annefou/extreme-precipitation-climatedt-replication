@@ -29,6 +29,12 @@ __pycache__/
 data/*
 !data/.gitkeep
 !data/README.md
+# ...except the study domain. The Germany boundary ring is an INPUT to the
+# retrieval, not retrieved data: notebooks/01_data_download.py sends it to
+# Polytope as the polygon to clip to server-side. Committing it is what fixes
+# the study area across runs and machines; fetching a boundary at runtime would
+# let the domain drift with an upstream dataset. Provenance is in the file.
+!data/germany_polygon.json
 
 # Prior-chain import cache — never committed; regenerated on demand from
 # the entry URI in CITATION.cff `references:`. The persistent pointer to
@@ -54,6 +60,17 @@ reference/
 
 # Results — large numerical outputs (commit only summary CSVs you reference in figures)
 results/raw/
+
+# Pipeline outputs, NOT committed while the study runs on the synthetic
+# stand-in. Until DestinE credentials are available, every number in results/
+# and every figure is a smoke test (provenance=synthetic, stamped across the
+# figure). A committed synthetic figure is one screenshot away from being
+# mistaken for a replication result, and the FORRT Outcome is signed and
+# permanent. CI regenerates both on every run, so nothing is lost by not
+# committing them. Remove these three lines once the real retrieval has run.
+results/
+figures/main_result.*
+figures/ordering_tests.png
 
 # Docker
 docker-image.tar.gz

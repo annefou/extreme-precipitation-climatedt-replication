@@ -4,7 +4,7 @@
   "chain_shape": "paper-rooted",
   "source": {
     "repository": "https://github.com/annefou/extreme-precipitation-climatedt-replication",
-    "commit": "a35b7fbe0c3b6693de3636b04339766d59b352d1",
+    "commit": "10407049511eacf8c2f752d709a4ab8957f9dc84",
     "figure": "figures/main_result.png"
   },
   "steps": [
@@ -29,10 +29,25 @@
       "template_key": "AIDA_SENTENCE",
       "template_uri": "https://w3id.org/np/RALmXhDw3rHcMveTgbv8VtWxijUHwnSqhCmtJFIPKWVaA",
       "prefill": {
-        "aida": "Under global warming, extreme precipitation events of short duration and long return period intensify proportionally more than events of long duration and short return period."
+        "aida": "Under global warming, extreme precipitation events of short duration and long return period intensify proportionally more than events of long duration and short return period.",
+        "topic": [
+          {
+            "uri": "http://www.wikidata.org/entity/Q111089542",
+            "label": "extreme rainfall"
+          },
+          {
+            "uri": "http://www.wikidata.org/entity/Q7942",
+            "label": "global warming"
+          },
+          {
+            "uri": "http://www.wikidata.org/entity/Q260607",
+            "label": "climate change adaptation"
+          }
+        ]
       },
       "provenance": {
-        "aida": "nanopubs/drafts/02_aida.md"
+        "aida": "nanopubs/drafts/02_aida.md",
+        "topic": "nanopubs/drafts/02_aida.md + Wikidata"
       },
       "published_uri": "https://w3id.org/sciencelive/np/RAT7-YqPy3iaywOuuWKpSMl_pexB8Dfe8bqriXzBnW_ek"
     },
@@ -67,7 +82,25 @@
         "type": "https://w3id.org/sciencelive/o/terms/Replication-Study",
         "scope": "Tested: the ORDERING the claim asserts — that extreme precipitation events of\nshort duration and long return period intensify proportionally more than events of long\nduration and short return period. Operationally, whether the largest change in return\nlevel across a duration x return-period matrix falls at the short-duration,\nlong-return-period corner, and whether that corner exceeds the long-duration,\nshort-return-period corner.\n\nNot tested: the original's reported magnitude of 6-8.5% per degree of global warming.\nThat figure is a maximum across the members of one convection-permitting ensemble over\none domain; elsewhere it can only be re-measured, not tested. It is recorded in the\nOutcome as evidence alongside this study's own per-degree figures, with both definitions\nattached.\n\nAlso not tested: the original's comparison against observations (DWD stations,\nKOSTRA-DWD-2010R), its 72-hour duration, its return periods beyond 20 years, and its\nGWL2/GWL3 warming levels.",
         "methodology": "Data: Destination Earth Climate DT, generation 2 — model IFS-NEMO,\nrealization 1, hourly `clte` stream, variable `avg_tprate` (hourly-mean precipitation\nrate, kg m-2 s-1), `levtype=sfc`, `resolution=high`, i.e. the native HEALPix level 10\ngrid (nside 1024, about 6.3 km). Two 20-year windows of equal length: 1991-2010\n(activity `baseline`, experiment `hist`) and 2030-2049 (activity `projections`,\nexperiment SSP3-7.0).\n\nRetrieval: ECMWF Polytope server-side polygon feature extraction over Germany, one\nrequest per calendar month (480 in total, about 23 GB). MARS cannot crop a HEALPix field\nwith a lat/lon box, so server-side extraction is what makes 20 years of hourly level-10\ndata tractable. The domain polygon is committed with the code (Eurostat NUTS 2021\nlevel 0, simplified to 128 vertices) so the study area is fixed. 8,697 cells fall inside\nit.\n\nReduction: rates converted to millimetres per hour (x3600); backward rolling\naccumulations over 1, 3, 6, 12 and 24 hours; the annual maximum of each accumulation per\ncell per calendar year, with each year carrying the tail of the previous one so a\n24-hour total ending on 1 January still sees 31 December.\n\nEstimation: a regional index-flood analysis per (window, duration). Each cell's\nannual-maxima series is divided by its own at-site mean, the standardised series are\npooled across all cells, and a single generalised extreme value distribution is fitted to\nthe pool by L-moments (Hosking). Return levels for 2, 5, 10 and 20 years are the pooled\ngrowth factor times each cell's index flood. Pooling is what allows a 20-year return\nlevel from a 20-year window, and is the same device the original uses. Uncertainty comes\nfrom resampling CELLS with replacement (n=400), because spatial correlation, not record\nlength, limits the effective independence of the pooled sample.\n\nComparison: the change per matrix cell is the median over grid cells of the per-cell\nratio of return levels between windows, so each cell's own climatology cancels.\n\nCoordinate systems: the Climate DT is delivered on HEALPix defined on a sphere. The whole\nanalysis is repeated on HEALPix on the WGS84 ellipsoid, converted with healpix-resample's\nconservative (mass-preserving) operator, and both grids are reported.\n\nData attribution (Destination Earth Terms and Conditions v2.0, Art. 3.4): this\ndata is created based on data of the European Union, using the Destination Earth\nPlatform, but has been modified by Anne Fouilloux. The results are a derived\nproduct - aggregation and transformation of Climate DT output - and are not\noriginal DestinE Data. The underlying hourly data is not redistributed.\n\nSoftware: Python; numpy, scipy, xarray, earthkit-data, polytope-client, healpix-geo,\nhealpix-resample. The extreme-value estimator, the coordinate conversion and the verdict\nlogic are unit tested — the GEV against scipy.stats.genextreme, and the verdict against\nmatrices whose answer is known by construction.",
-        "deviation": "Different data and different statistics from the original; both are\ndeliberate, and together they are what make agreement informative rather than circular.\n\n1. Model: a single coupled global Earth-system model (IFS-NEMO, one realization) in place\n   of a four-member ensemble of CMIP5 GCMs downscaled with COSMO-CLM.\n2. Resolution: about 5 km (HEALPix level 10, ~6.3 km) in place of 2.8 km. Deep convection\n   is therefore NOT explicitly resolved here, whereas the original's added value came\n   precisely from resolving it.\n3. Domain: all of Germany (8,697 cells) in place of the original's convection-permitting\n   nest over Southern and Central Germany (~411,000 km2).\n4. Scenario: SSP3-7.0 in place of RCP 8.5.\n5. Periods: two 20-year windows (1991-2010, 2030-2049) in place of a transient 1971-2100\n   simulation with a 1971-2005 reference and 30-year running windows.\n6. Warming: one interval of 0.93 K of global-mean warming between the windows, in place of\n   the original's GWL2 and GWL3 (2 K and 3 K). This study therefore cannot test the\n   linearity of the response with warming, only the ordering at one interval.\n7. Durations: 1, 3, 6, 12, 24 hours in place of 1, 6, 12, 24, 72 hours. There is no 72-hour\n   duration here and no 3-hour duration there; the shortest, most convectively driven\n   durations the original emphasises are below the archive's hourly resolution.\n8. Estimator: a regional index-flood GEV fitted by L-moments to annual maxima, in place of\n   a partial-series peak-over-threshold selection with an exponential fit in logarithmic\n   space following the German DWA-A 531 guideline.\n9. Return periods: up to 20 years in place of up to 100 years. Twenty years of data cannot\n   support a 100-year return level even with pooling.\n10. No sub-hourly correction: the original applies DWA-A 531 factors (1.14, 1.07, 1.04,\n    1.03) for event durations up to 4 hours to compensate for hourly sampling. This study\n    applies none, so its short-duration intensities are, if anything, conservative — which\n    matters because the short durations are where it finds the largest changes.\n11. No observational comparison: the original evaluates against DWD station data and\n    KOSTRA-DWD-2010R. This study compares model windows to each other only."
+        "deviation": "Different data and different statistics from the original; both are\ndeliberate, and together they are what make agreement informative rather than circular.\n\n1. Model: a single coupled global Earth-system model (IFS-NEMO, one realization) in place\n   of a four-member ensemble of CMIP5 GCMs downscaled with COSMO-CLM.\n2. Resolution: about 5 km (HEALPix level 10, ~6.3 km) in place of 2.8 km. Deep convection\n   is therefore NOT explicitly resolved here, whereas the original's added value came\n   precisely from resolving it.\n3. Domain: all of Germany (8,697 cells) in place of the original's convection-permitting\n   nest over Southern and Central Germany (~411,000 km2).\n4. Scenario: SSP3-7.0 in place of RCP 8.5.\n5. Periods: two 20-year windows (1991-2010, 2030-2049) in place of a transient 1971-2100\n   simulation with a 1971-2005 reference and 30-year running windows.\n6. Warming: one interval of 0.93 K of global-mean warming between the windows, in place of\n   the original's GWL2 and GWL3 (2 K and 3 K). This study therefore cannot test the\n   linearity of the response with warming, only the ordering at one interval.\n7. Durations: 1, 3, 6, 12, 24 hours in place of 1, 6, 12, 24, 72 hours. There is no 72-hour\n   duration here and no 3-hour duration there; the shortest, most convectively driven\n   durations the original emphasises are below the archive's hourly resolution.\n8. Estimator: a regional index-flood GEV fitted by L-moments to annual maxima, in place of\n   a partial-series peak-over-threshold selection with an exponential fit in logarithmic\n   space following the German DWA-A 531 guideline.\n9. Return periods: up to 20 years in place of up to 100 years. Twenty years of data cannot\n   support a 100-year return level even with pooling.\n10. No sub-hourly correction: the original applies DWA-A 531 factors (1.14, 1.07, 1.04,\n    1.03) for event durations up to 4 hours to compensate for hourly sampling. This study\n    applies none, so its short-duration intensities are, if anything, conservative — which\n    matters because the short durations are where it finds the largest changes.\n11. No observational comparison: the original evaluates against DWD station data and\n    KOSTRA-DWD-2010R. This study compares model windows to each other only.",
+        "keywordSelection": [
+          {
+            "uri": "http://www.wikidata.org/entity/Q111089542",
+            "label": "extreme rainfall"
+          },
+          {
+            "uri": "http://www.wikidata.org/entity/Q2627230",
+            "label": "return period"
+          },
+          {
+            "uri": "http://www.wikidata.org/entity/Q1617240",
+            "label": "generalized extreme value distribution"
+          },
+          {
+            "uri": "http://www.wikidata.org/entity/Q620920",
+            "label": "climate model"
+          }
+        ]
       },
       "provenance": {
         "study": "nanopubs/drafts/04_study.md",
@@ -75,7 +108,8 @@
         "type": "nanopubs/drafts/04_study.md",
         "scope": "nanopubs/drafts/04_study.md",
         "methodology": "nanopubs/drafts/04_study.md",
-        "deviation": "nanopubs/drafts/04_study.md"
+        "deviation": "nanopubs/drafts/04_study.md",
+        "keywordSelection": "nanopubs/drafts/04_study.md + Wikidata"
       },
       "manual": [
         "type"

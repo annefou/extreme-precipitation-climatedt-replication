@@ -35,6 +35,10 @@ Predefined topic vocabulary — list the labels you intend to pick from the drop
 Each verified with `wikidata_lookup`: this field's template declares `owl:Class`,
 so every term below was confirmed to carry a `P279` (subclass of) statement.
 
+**The QID is written next to the label on purpose.** `build_chain_draft.py`
+otherwise re-searches by label, and "global warming" searches to Q125928
+(*climate change*) -- a different item from the Q7942 verified here.
+
 | Label | QID | P279 | |
 |---|---|---|---|
 | extreme rainfall | Q111089542 | ✓ | the phenomenon the claim is about |
@@ -47,9 +51,9 @@ field's `owl:Class` requirement. It would be acceptable in a plain keyword field
 which imposes no type.
 
 ```
-extreme rainfall
-global warming
-climate change adaptation
+extreme rainfall (Q111089542)
+global warming (Q7942)
+climate change adaptation (Q260607)
 ```
 
 <!-- field: project -->

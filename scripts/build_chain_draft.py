@@ -374,8 +374,22 @@ def slug_for(step: str, org: str | None, repo: str | None) -> str | None:
 def draft_labels(draft_text: str, field: dict) -> list[str]:
     """The plain labels the agent listed for a Wikidata field (best-effort).
 
-    The draft lists them as bullets, optionally ``- _Label 1: <value>``. Take the
-    text after a colon, or the bullet text, dropping empty/placeholder entries."""
+    Two layouts are accepted, because both occur in real drafts:
+
+    * the skeleton's bullets, ``- _Label 1: <value>`` or ``- <value>``;
+    * a fenced block with one label per line, which is how EVERY OTHER field in
+      a draft is written, so an author reaches for it naturally.
+
+    A fenced block wins if present: it is unambiguous, whereas bullets share the
+    line shape of ordinary prose.
+
+    Both faults this guards against were real. A draft that listed its topics in
+    a fence had all three labels ignored, and a line of prose beginning
+    ``**Not used: ...**`` was then read AS a bullet -- ``[-*]`` matched the first
+    asterisk of the bold marker -- so the field was filled with a sentence
+    fragment, failed to resolve, and published empty. Hence the bullet pattern
+    now requires whitespace after the marker and rejects a bold run.
+    """
     body = _draft_sections(draft_text).get(_norm(field["label"]))
     if body is None:
         key = _norm(field["label"])
@@ -385,9 +399,23 @@ def draft_labels(draft_text: str, field: dict) -> list[str]:
                 break
     if not body:
         return []
-    out: list[str] = []
+
+    fenced = re.search(r"```[^\n]*\n(.*?)```", body, re.S)
+    if fenced:
+        out = []
+        for line in fenced.group(1).splitlines():
+            v = line.strip().strip("_").strip()
+            if v and v != "___" and "___" not in v and not v.startswith("<"):
+                out.append(v)
+        if out:
+            return out
+
+    out = []
     for line in body.splitlines():
-        m = re.match(r"\s*[-*]\s*_?[^:]*:\s*(.+?)\s*$", line) or re.match(r"\s*[-*]\s+(.+?)\s*$", line)
+        if re.match(r"\s*\*\*", line):        # bold prose, not a list item
+            continue
+        m = (re.match(r"\s*[-*]\s+_?[^:]*:\s*(.+?)\s*$", line)
+             or re.match(r"\s*[-*]\s+(.+?)\s*$", line))
         if not m:
             continue
         v = m.group(1).strip().strip("_").strip()
@@ -416,6 +444,38 @@ def declares_concept_type(field: dict) -> bool:
 # default Python urllib one with 403. Without this header every lookup below
 # failed and was swallowed by the except, so every Wikidata field silently came
 # back empty — a whole feature quietly doing nothing.
+# Collected while building, reported at the end. A Wikidata field that silently
+# comes out empty is the failure mode this guards: the wizard then publishes the
+# nanopub with no topics and nothing ever said so.
+UNRESOLVED: list[tuple[str, str, str]] = []
+EMPTY_WIKIDATA: list[tuple[str, str, int]] = []
+MISLABELLED: list[tuple[str, str, str, str, str]] = []
+
+
+def _labels_agree(asked: str, got: str) -> bool:
+    """Loose match between the label a draft wrote and the item's own label."""
+    a, b = _norm(asked), _norm(got)
+    return a == b or a in b or b in a
+
+
+def draft_has_topic_prose(draft_text: str | None, field: dict, alias: str | None) -> bool:
+    """Does the draft actually have a section for this field, filled with anything?"""
+    if not draft_text:
+        return False
+    lookup = {"label": alias} if alias else field
+    body = _draft_sections(draft_text).get(_norm(lookup["label"]))
+    if body is None:
+        key = _norm(lookup["label"])
+        for hk, hv in _draft_sections(draft_text).items():
+            if hk and (hk in key or key in hk):
+                body = hv
+                break
+    if not body:
+        return False
+    stripped = re.sub(r"[`*_|>#\-\s]", "", body)
+    return len(stripped) > 40          # more than a bare skeleton placeholder
+
+
 WIKIDATA_API = "https://www.wikidata.org/w/api.php"
 WIKIDATA_UA = ("forrt-replication-template/1.0 "
                "(+https://github.com/ScienceLiveHub/forrt-replication-template)")
@@ -453,6 +513,38 @@ def _wikidata_claims(qid: str, prop: str, *, timeout: int = 15) -> list:
         "action": "wbgetclaims", "property": prop, "format": "json", "entity": qid,
     }, timeout)
     return ((d or {}).get("claims") or {}).get(prop) or []
+
+
+# A draft may name the item explicitly, `global warming (Q7942)`. Honour it.
+_EXPLICIT_QID_RE = re.compile(r"^(.*?)\s*[\(\[]\s*(Q\d+)\s*[\)\]]\s*$")
+
+
+def split_explicit_qid(label: str) -> tuple[str, str | None]:
+    """`"global warming (Q7942)"` -> `("global warming", "Q7942")`."""
+    m = _EXPLICIT_QID_RE.match(label.strip())
+    return (m.group(1).strip(), m.group(2)) if m else (label.strip(), None)
+
+
+def wikidata_by_qid(qid: str, *, require_concept: bool = False,
+                    timeout: int = 15) -> dict | None:
+    """Fetch a named item directly, so a QID the drafter type-checked is the one signed.
+
+    Searching by label is not the same as naming an item. "global warming"
+    searches to Q125928 ("climate change"), a DIFFERENT item from Q7942 ("global
+    warming") -- so a draft that carefully recorded and type-checked Q7942 would
+    have had Q125928 signed instead. When the draft names the QID, use it.
+    """
+    d = _wikidata_get({
+        "action": "wbgetentities", "ids": qid, "props": "labels",
+        "languages": "en", "format": "json",
+    }, timeout)
+    entity = (d or {}).get("entities", {}).get(qid) or {}
+    if not entity or "missing" in entity:
+        return None
+    if require_concept and not _wikidata_claims(qid, "P279", timeout=timeout):
+        return None
+    label = entity.get("labels", {}).get("en", {}).get("value") or qid
+    return {"uri": f"http://www.wikidata.org/entity/{qid}", "label": label}
 
 
 def resolve_wikidata(label: str, *, require_concept: bool = False,
@@ -576,18 +668,35 @@ def build_step(step: str, spec: dict, registry_meta: dict, cff: dict,
         wk = WIKIDATA_FIELDS.get((step, name))
         if wk:                                         # Wikidata concept field
             form_field, is_array = wk
-            items = []
+            items, wanted = [], []
             if draft_text and resolve is not None:
                 needs_concept = declares_concept_type(f)
                 wk_alias = DRAFT_HEADING_ALIAS.get((step, name))
                 wk_lookup = {"label": wk_alias} if wk_alias else f
-                for label in draft_labels(draft_text, wk_lookup):
-                    r = resolve(label, require_concept=needs_concept)
+                wanted = draft_labels(draft_text, wk_lookup)
+                for raw in wanted:
+                    label, qid = split_explicit_qid(raw)
+                    r = (wikidata_by_qid(qid, require_concept=needs_concept)
+                         if qid else resolve(label, require_concept=needs_concept))
+                    # Naming a QID removes the label search's safety net: a
+                    # mistyped or misremembered QID resolves perfectly to the
+                    # WRONG concept and reads as plausible in the JSON. Q1502587
+                    # for "generalized extreme value distribution" is really
+                    # "Gensdarmes". Compare what came back with what was asked
+                    # for, and say so when they do not match.
+                    if r and qid and not _labels_agree(label, r["label"]):
+                        MISLABELLED.append((step, name, label, qid, r["label"]))
                     if r:
                         items.append(r)
+                    else:
+                        UNRESOLVED.append((step, name, label))
             if items:
                 prefill[form_field] = items if is_array else items[0]
                 provenance[form_field] = f"{drafts_label}/{step}.md + Wikidata"
+            elif draft_has_topic_prose(draft_text, f, wk_alias if draft_text else None):
+                # Labels were written but none survived. Silence here is how a
+                # topic field reaches a signed nanopub empty.
+                EMPTY_WIKIDATA.append((step, name, len(wanted)))
             continue
         rt = REPEATABLE_TEXT_FIELDS.get((step, name))
         if rt:                                         # repeatable plain-URL list
@@ -793,6 +902,24 @@ def main(argv: list[str] | None = None) -> int:
         print(f"No headline figure found in {FIGURE_DIR}/ — the published chain's "
               f"story page will have no image. Commit one image there (a "
               f"git-ignored figure does not count).", file=sys.stderr)
+
+    # A Wikidata field that comes out empty publishes a nanopub with no topics,
+    # and the wizard shows a blank box that is easy to page past. Say so.
+    for step, name, label in UNRESOLVED:
+        print(f"Wikidata: {step}.{name} — no match for {label!r}; it will not "
+              f"appear in the published nanopub.", file=sys.stderr)
+    for step, name, n in EMPTY_WIKIDATA:
+        print(f"Wikidata: {step}.{name} is EMPTY — the draft has a filled "
+              f"section but {n} label(s) survived. The published nanopub will "
+              f"carry no {name}. Check the draft lists labels as bullets "
+              f"(`- label`) or in a fenced block, one per line.", file=sys.stderr)
+    for step, name, asked, qid, got in MISLABELLED:
+        print(f"Wikidata: {step}.{name} — the draft asked for {asked!r} and named "
+              f"{qid}, but {qid} is {got!r}. One of the two is wrong; the QID is "
+              f"what gets signed.", file=sys.stderr)
+    problems = len(UNRESOLVED) + len(EMPTY_WIKIDATA) + len(MISLABELLED)
+    if problems:
+        print(f"{problems} Wikidata problem(s) above.", file=sys.stderr)
     return 0
 
 

@@ -158,10 +158,19 @@ deliberate, and together they are what make agreement informative rather than ci
 <!-- field: keyword -->
 ### Search keywords (Wikidata) (search/select, optional)
 
-Provide labels (not QIDs) — the Wikidata search picks up labels.
+Labels **with their QIDs** — `build_chain_draft.py` honours an explicit QID and
+only falls back to a label search without one. A label search can land on a
+different item than the one you checked.
 
-- _Label 1: ___
-- _Label 2: ___
+This field imposes no `owl:Class` type, so items without `P279` are acceptable
+here (unlike `02_aida.topic`).
+
+```
+extreme rainfall (Q111089542)
+return period (Q2627230)
+generalized extreme value distribution (Q1617240)
+climate model (Q620920)
+```
 
 <!-- field: discipline -->
 ### Search discipline (Wikidata) (search/select, optional)

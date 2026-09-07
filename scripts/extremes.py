@@ -70,6 +70,81 @@ def rolling_any_nan(values: np.ndarray, window: int) -> np.ndarray:
     return out
 
 
+def annual_maxima_multi(chunks, windows) -> tuple[np.ndarray, dict[int, np.ndarray]]:
+    """Annual maxima for SEVERAL durations in a single pass over the data.
+
+    `chunks` yields `(year, values)` once; every duration is accumulated from
+    the same array before the next year is read.
+
+    The one-duration-at-a-time version re-read all 23 GB for each of the five
+    durations. That was merely wasteful for the native grid; with the
+    sphere-to-ellipsoid conversion in the same loop it would have meant
+    resampling the whole hourly series five times over -- about seven hours
+    instead of one and a half.
+
+    Each duration keeps its own carry-over, so a 24-hour accumulation ending on
+    1 January still sees 31 December.
+    """
+    windows = tuple(windows)
+    carries: dict[int, np.ndarray | None] = {w: None for w in windows}
+    years: list[int] = []
+    out: dict[int, list[np.ndarray]] = {w: [] for w in windows}
+
+    for year, values in chunks:
+        values = np.asarray(values, dtype=np.float64)
+        years.append(year)
+        for window in windows:
+            carry = carries[window]
+            if carry is None or window == 1:
+                block, offset = values, 0
+            else:
+                block, offset = np.concatenate([carry, values], axis=0), carry.shape[0]
+            acc = rolling_sum(block, window)[offset:]
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                out[window].append(
+                    np.nanmax(acc, axis=0) if acc.size else np.full(values.shape[1], np.nan)
+                )
+            carries[window] = values[-(window - 1):] if window > 1 else None
+
+    return np.asarray(years), {w: np.stack(v) for w, v in out.items()}
+
+
+def annual_maxima_chunked(chunks, window: int) -> tuple[np.ndarray, np.ndarray]:
+    """Annual maxima computed one year at a time, for data too big to hold whole.
+
+    `chunks` yields `(year, values)` in chronological order, `values` shaped
+    (time, cell) for that calendar year alone.
+
+    A whole 20-year window here is 8,697 cells x 175,200 hours = 12 GB as
+    float64, and `rolling_sum` needs about four such arrays at once -- roughly
+    49 GB per duration, against 57 GB of usable memory. Per year it is 0.6 GB
+    and ~2.4 GB peak.
+
+    The subtlety this handles is the YEAR BOUNDARY: a 24-hour accumulation
+    ending on 1 January draws on the last hours of 31 December. Each year is
+    therefore prefixed with the tail of the previous one, and the accumulations
+    belonging to that prefix are dropped again, so the result is identical to
+    computing over the unbroken series -- which `tests/test_extremes.py` asserts
+    directly rather than taking on trust.
+    """
+    carry: np.ndarray | None = None
+    years, maxima = [], []
+    for year, values in chunks:
+        values = np.asarray(values, dtype=np.float64)
+        if carry is None or window == 1:
+            block, offset = values, 0
+        else:
+            block, offset = np.concatenate([carry, values], axis=0), carry.shape[0]
+        acc = rolling_sum(block, window)[offset:]
+        years.append(year)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            maxima.append(np.nanmax(acc, axis=0) if acc.size else np.full(values.shape[1], np.nan))
+        carry = values[-(window - 1):] if window > 1 else None
+    return np.asarray(years), np.stack(maxima)
+
+
 def annual_maxima(values: np.ndarray, years: np.ndarray, window: int) -> tuple[np.ndarray, np.ndarray]:
     """Block maxima of the `window`-hour accumulation, one block per calendar year.
 

@@ -54,6 +54,54 @@ def test_annual_maxima_blocks_by_calendar_year():
     assert am[0, 0] == 10.0 and am[1, 0] == 4.0
 
 
+@pytest.mark.parametrize("window", [1, 3, 24])
+def test_chunked_annual_maxima_equal_the_whole_series(window):
+    # THE test for the memory-driven rewrite: processing year by year must give
+    # bit-identical results to processing the unbroken series, including for
+    # accumulations that straddle 31 December.
+    rng = np.random.default_rng(4)
+    hours = [8760, 8784, 8760]  # a leap year in the middle, so lengths differ
+    labels = [2001, 2002, 2003]
+    per_year = [rng.gamma(0.4, 1.5, size=(n, 6)) for n in hours]
+    whole = np.concatenate(per_year, axis=0)
+    year_of_row = np.concatenate([np.full(n, y) for n, y in zip(hours, labels)])
+
+    years_a, am_a = extremes.annual_maxima(whole, year_of_row, window)
+    years_b, am_b = extremes.annual_maxima_chunked(zip(labels, per_year), window)
+
+    assert list(years_a) == list(years_b)
+    assert np.allclose(am_a, am_b, rtol=0, atol=1e-9, equal_nan=True)
+
+
+def test_multi_duration_pass_equals_one_duration_at_a_time():
+    # The single-pass rewrite exists to avoid resampling the hourly series five
+    # times over. It must change nothing about the answer.
+    rng = np.random.default_rng(9)
+    hours, labels = [8760, 8784], [2003, 2004]
+    per_year = [rng.gamma(0.4, 1.5, size=(n, 5)) for n in hours]
+    durations = (1, 3, 24)
+
+    years_multi, am_multi = extremes.annual_maxima_multi(zip(labels, per_year), durations)
+    assert list(years_multi) == labels
+    for duration in durations:
+        _, am_single = extremes.annual_maxima_chunked(zip(labels, per_year), duration)
+        assert np.allclose(am_multi[duration], am_single, rtol=0, atol=1e-9, equal_nan=True)
+
+
+def test_chunked_annual_maxima_actually_uses_the_previous_year():
+    # A 24-hour total ending on 1 January must see 31 December. Put all the rain
+    # in the last hours of year 1 and none in year 2: year 2's 24-hour maximum
+    # must still be positive.
+    a = np.zeros((48, 1))
+    a[-3:, 0] = 5.0
+    b = np.zeros((48, 1))
+    _, am = extremes.annual_maxima_chunked([(2001, a), (2002, b)], window=24)
+    assert am[1, 0] == pytest.approx(15.0)
+    # ...and with no carry-over it would have been zero.
+    _, am_nocarry = extremes.annual_maxima_chunked([(2002, b)], window=24)
+    assert am_nocarry[0, 0] == 0.0
+
+
 def test_annual_maxima_of_longer_duration_is_at_least_the_shorter_one():
     rng = np.random.default_rng(0)
     v = rng.gamma(0.5, 1.0, size=(8760, 4))

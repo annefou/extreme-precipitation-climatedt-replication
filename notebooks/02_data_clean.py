@@ -44,8 +44,14 @@ import xarray as xr
 sys.path.insert(0, str(Path("../scripts").resolve()))
 
 import climatedt  # noqa: E402
+import ellipsoid  # noqa: E402
 import extremes  # noqa: E402
 import geometry  # noqa: E402
+
+try:
+    import healpix_geo  # noqa: E402
+except ImportError:  # the ellipsoid grid is then simply not produced
+    healpix_geo = None
 
 RAW_DIR = Path("../data/raw")
 CLEAN_DIR = Path("../data/clean")
@@ -120,37 +126,134 @@ if PROVENANCE != "destine-climate-dt":
 RATE_TO_MM = climatedt.RATE_TO_MM_PER_HOUR
 
 
-def annual_maxima_for_window(files: list[Path]) -> xr.Dataset:
-    """(n_durations, n_years, n_cells) annual maxima in mm, with cell geometry."""
-    ds = xr.open_mfdataset(files, combine="by_coords", chunks={"time": 24 * 90})
-    tp_mm = ds[climatedt.PARAM_PRECIP].transpose("time", "cell").values * RATE_TO_MM
-    years = ds["time"].dt.year.values
-    blocks, stack = None, []
+def year_of(path: Path) -> int:
+    """1991 from `precip_hist_199103.nc`."""
+    return int(path.stem.rsplit("_", 1)[-1][:4])
+
+
+def read_year(files: list[Path]) -> tuple[np.ndarray, xr.Dataset]:
+    """One calendar year of hourly precipitation in mm, as (time, cell)."""
+    ds = xr.open_mfdataset(sorted(files), combine="by_coords")
+    values = ds[climatedt.PARAM_PRECIP].transpose("time", "cell").values * RATE_TO_MM
+    return values, ds
+
+
+def annual_maxima_for_window(files: list[Path], resampler=None) -> xr.Dataset:
+    """(n_durations, n_years, n_cells) annual maxima in mm, with cell geometry.
+
+    Reads a **year at a time**, computing every duration in that one pass. A
+    whole 20-year window is 8,697 cells x 175,200 hours = 12 GB as float64, and
+    the rolling accumulation needs about four such arrays at once — roughly
+    49 GB per duration against 57 GB of usable memory. Per year that is 0.6 GB.
+    `extremes.annual_maxima_multi` carries the tail of each year into the next
+    so a 24-hour total ending on 1 January still sees 31 December; the test
+    suite asserts the result is identical to the unbroken series.
+
+    With `resampler` given, each year is converted from the delivered
+    **spherical** HEALPix cells onto **WGS84-ellipsoidal** HEALPix cells before
+    the maxima are taken — see `scripts/ellipsoid.py`. The conversion happens
+    inside this single pass on purpose: done per duration it would resample the
+    whole hourly series five times over.
+    """
+    by_year: dict[int, list[Path]] = {}
+    for f in files:
+        by_year.setdefault(year_of(f), []).append(f)
+
+    cell_geometry: dict | None = None
+
+    def chunks():
+        nonlocal cell_geometry
+        for year in sorted(by_year):
+            values, ds = read_year(by_year[year])
+            if resampler is None:
+                if cell_geometry is None:
+                    cell_geometry = {
+                        "cell": ds["cell"].values,
+                        "latitude": ds["latitude"].values,
+                        "longitude": ds["longitude"].values,
+                    }
+            else:
+                # Batch the whole year through the sparse operator at once;
+                # measured at ~14 ms per hourly field for this domain.
+                cell_ids, values = ellipsoid.to_ellipsoid(resampler, values)
+                if cell_geometry is None:
+                    lon_e, lat_e = healpix_geo.nested.healpix_to_lonlat(
+                        cell_ids, ellipsoid.NATIVE_LEVEL, ellipsoid="WGS84"
+                    )
+                    cell_geometry = {
+                        "cell": np.asarray(cell_ids),
+                        "latitude": np.asarray(lat_e),
+                        "longitude": np.asarray(lon_e),
+                    }
+            ds.close()
+            print(f"    {year} ...", end="", flush=True)
+            yield year, values
+
+    blocks, per_duration = extremes.annual_maxima_multi(chunks(), climatedt.DURATIONS_H)
+    print()
+    stack = []
     for duration in climatedt.DURATIONS_H:
-        blocks, am = extremes.annual_maxima(tp_mm, years, duration)
+        am = per_duration[duration]
         stack.append(am)
         print(
             f"    {duration:>3d} h: {am.shape[0]} years x {am.shape[1]} cells, "
-            f"median annual maximum {np.nanmedian(am):.2f} mm"
+            f"median annual maximum {np.nanmedian(am):.2f} mm",
+            flush=True,
         )
-    out = xr.Dataset(
+
+    return xr.Dataset(
         {"annual_max": (("duration", "year", "cell"), np.stack(stack).astype("float32"))},
         coords={
             "duration": list(climatedt.DURATIONS_H),
             "year": blocks,
-            "cell": ds["cell"].values,
-            "latitude": ("cell", ds["latitude"].values),
-            "longitude": ("cell", ds["longitude"].values),
+            "cell": cell_geometry["cell"],
+            "latitude": ("cell", cell_geometry["latitude"]),
+            "longitude": ("cell", cell_geometry["longitude"]),
         },
     )
-    ds.close()
-    return out
 
 
-per_window = {}
-for window, files in available.items():
-    print(f"{window} ({climatedt.WINDOWS[window]['label']}):")
-    per_window[window] = annual_maxima_for_window(files)
+# %% [markdown]
+# ### Two grids, deliberately
+#
+# The Climate DT is delivered on HEALPix defined on a mathematical **sphere**.
+# Every geographic use of it — masking a country, comparing with station data,
+# publishing an interoperable archive — is on the **WGS84 ellipsoid**, where the
+# same cell index lands somewhere else. `scripts/ellipsoid.py` does that
+# conversion with `healpix-resample`'s `PSFResampler`.
+#
+# At coarse resolution the difference is routinely neglected: the latitude
+# offset reaches 0.128° (~14 km), a third of a level-7 cell. At the level 10
+# (~6 km) used here it is more than two cells, and the mask check below measures
+# **350 of 8,697 cells (4.0%)** changing Germany-membership between the two
+# conventions.
+#
+# But PSF resampling is a Gaussian-kernel reconstruction: it **smooths**, and
+# this study measures maxima. So neither grid is assumed harmless — both are
+# built, and `03_analysis.py` runs the ordering test on each. Whether the
+# correction changes the conclusion is then a reported number, not an assertion.
+
+# %%
+GRIDS: dict[str, object] = {"native": None}
+if healpix_geo is not None:
+    probe_file = next(iter(available.values()))[0]
+    with xr.open_dataset(probe_file) as probe:
+        GRIDS["ellipsoid"] = ellipsoid.build_resampler(
+            probe["longitude"].values, probe["latitude"].values
+        )
+    print("ellipsoid resampler built (sphere -> WGS84 via PSFResampler)")
+else:
+    print("healpix-resample unavailable — building the native grid only")
+
+by_grid: dict[str, dict[str, xr.Dataset]] = {}
+for grid, resampler in GRIDS.items():
+    print(f"\n=== {grid} grid ===", flush=True)
+    by_grid[grid] = {}
+    for window, files in available.items():
+        print(f"{window} ({climatedt.WINDOWS[window]['label']}):", flush=True)
+        by_grid[grid][window] = annual_maxima_for_window(files, resampler)
+
+per_window = by_grid["native"]
 
 # %% [markdown]
 # ## Combine into one artefact
@@ -162,44 +265,60 @@ for window, files in available.items():
 # because the GEV's tail estimate depends on the record length.
 
 # %%
-n_blocks = {w: ds.sizes["year"] for w, ds in per_window.items()}
-print(f"blocks per window: {n_blocks}")
-if len(set(n_blocks.values())) != 1:
-    raise ValueError(
-        f"windows have different numbers of years {n_blocks}; the two GEV fits would "
-        "rest on different sample sizes and the comparison would be confounded"
+def combine(per_window: dict[str, xr.Dataset], grid: str) -> xr.Dataset:
+    """Stack the two windows into the artefact 03 reads."""
+    n_blocks = {w: ds.sizes["year"] for w, ds in per_window.items()}
+    if len(set(n_blocks.values())) != 1:
+        raise ValueError(
+            f"windows have different numbers of years {n_blocks}; the two GEV fits "
+            "would rest on different sample sizes and the comparison would be confounded"
+        )
+    windows = list(per_window)
+    out = xr.Dataset(
+        {
+            "annual_max": (
+                ("window", "duration", "block", "cell"),
+                np.stack([per_window[w]["annual_max"].values for w in windows]),
+            ),
+            "year": (
+                ("window", "block"),
+                np.stack([per_window[w]["year"].values for w in windows]),
+            ),
+        },
+        coords={
+            "window": windows,
+            "duration": list(climatedt.DURATIONS_H),
+            "block": np.arange(next(iter(n_blocks.values())), dtype="int32"),
+            "cell": per_window[windows[0]]["cell"].values,
+            "latitude": ("cell", per_window[windows[0]]["latitude"].values),
+            "longitude": ("cell", per_window[windows[0]]["longitude"].values),
+        },
+        attrs={
+            "provenance": PROVENANCE,
+            "grid": grid,
+            "grid_description": (
+                "HEALPix level 10 NESTED on the WGS84 ellipsoid, converted from the "
+                "delivered spherical grid with healpix-resample's PSFResampler"
+                if grid == "ellipsoid"
+                else "HEALPix level 10 NESTED as delivered, on the sphere"
+            ),
+            "title": "Annual maximum precipitation accumulation by duration, Germany",
+            "source": "Destination Earth Climate DT generation 2, IFS-NEMO, SSP3-7.0",
+            "window_labels": json.dumps({w: climatedt.WINDOWS[w]["label"] for w in windows}),
+            "created_by": "notebooks/02_data_clean.py",
+        },
     )
+    out["annual_max"].attrs.update(units="mm", long_name="Annual maximum accumulation")
+    out["duration"].attrs.update(units="h", long_name="Accumulation duration")
+    return out
 
+
+combined_by_grid = {grid: combine(pw, grid) for grid, pw in by_grid.items()}
+combined = combined_by_grid["native"]
 windows = list(per_window)
-combined = xr.Dataset(
-    {
-        "annual_max": (
-            ("window", "duration", "block", "cell"),
-            np.stack([per_window[w]["annual_max"].values for w in windows]),
-        ),
-        "year": (
-            ("window", "block"),
-            np.stack([per_window[w]["year"].values for w in windows]),
-        ),
-    },
-    coords={
-        "window": windows,
-        "duration": list(climatedt.DURATIONS_H),
-        "block": np.arange(next(iter(n_blocks.values())), dtype="int32"),
-        "cell": per_window[windows[0]]["cell"].values,
-        "latitude": ("cell", per_window[windows[0]]["latitude"].values),
-        "longitude": ("cell", per_window[windows[0]]["longitude"].values),
-    },
-    attrs={
-        "provenance": PROVENANCE,
-        "title": "Annual maximum precipitation accumulation by duration, Germany",
-        "source": "Destination Earth Climate DT generation 2, IFS-NEMO, SSP3-7.0",
-        "window_labels": json.dumps({w: climatedt.WINDOWS[w]["label"] for w in windows}),
-        "created_by": "notebooks/02_data_clean.py",
-    },
-)
-combined["annual_max"].attrs.update(units="mm", long_name="Annual maximum accumulation")
-combined["duration"].attrs.update(units="h", long_name="Accumulation duration")
+print(f"blocks per window: {dict((w, combined.sizes['block']) for w in windows)}")
+for grid, ds_grid in combined_by_grid.items():
+    print(f"  {grid:9s} {ds_grid.sizes['cell']} cells")
 
 
 # %% [markdown]
@@ -261,7 +380,30 @@ else:
     )
 
 # %%
-out_path = CLEAN_DIR / "annual_maxima.nc"
-combined.to_netcdf(out_path)
-print(f"\nwrote {out_path} ({out_path.stat().st_size / 1e6:.1f} MB)")
+# The mask sensitivity and warming level are properties of the study, not of a
+# grid, so carry them onto both artefacts.
+for grid, ds_grid in combined_by_grid.items():
+    for key in ("ellipsoid_mask_sensitivity", "warming_levels", "delta_t_k"):
+        if key in combined.attrs:
+            ds_grid.attrs[key] = combined.attrs[key]
+    name = "annual_maxima.nc" if grid == "native" else f"annual_maxima_{grid}.nc"
+    out_path = CLEAN_DIR / name
+    ds_grid.to_netcdf(out_path)
+    print(f"wrote {out_path} ({out_path.stat().st_size / 1e6:.1f} MB, {grid} grid)")
+
+# %% [markdown]
+# ### What the conversion did to the maxima
+#
+# The number that decides whether the correction is harmless: PSF resampling
+# smooths, so if it damps the maxima materially, that has to be said out loud in
+# the Replication Study rather than left implicit.
+
+# %%
+if "ellipsoid" in combined_by_grid:
+    print(f"{'dur':>5} {'native':>10} {'ellipsoid':>10} {'change':>9}")
+    for d in climatedt.DURATIONS_H:
+        a = float(np.nanmedian(combined["annual_max"].sel(duration=d)))
+        b = float(np.nanmedian(combined_by_grid["ellipsoid"]["annual_max"].sel(duration=d)))
+        print(f"{d:>4}h {a:>10.2f} {b:>10.2f} {100 * (b / a - 1):>+8.2f}%")
+
 combined

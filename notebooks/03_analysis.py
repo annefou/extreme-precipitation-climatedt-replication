@@ -63,6 +63,7 @@ from scipy import stats
 
 sys.path.insert(0, str(Path("../scripts").resolve()))
 
+import analysis  # noqa: E402
 import climatedt  # noqa: E402
 import extremes  # noqa: E402
 
@@ -73,8 +74,26 @@ RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 N_BOOTSTRAP = 400
 BOOTSTRAP_SEED = 20260906
 
+# %% [markdown]
+# ## Inputs: one dataset per grid
+#
+# `02_data_clean.py` writes the annual maxima on the HEALPix grid **as
+# delivered** (defined on a sphere) and, when `healpix-resample` is available,
+# on the **WGS84 ellipsoid**. The whole analysis runs on each, so the effect of
+# the coordinate correction on the conclusion is measured rather than assumed.
+
 # %%
-ds = xr.open_dataset(CLEAN_DIR / "annual_maxima.nc")
+GRID_FILES = {"native": "annual_maxima.nc", "ellipsoid": "annual_maxima_ellipsoid.nc"}
+grids = {
+    name: xr.open_dataset(CLEAN_DIR / fname)
+    for name, fname in GRID_FILES.items()
+    if (CLEAN_DIR / fname).exists()
+}
+if not grids:
+    raise FileNotFoundError(f"no annual-maxima file in {CLEAN_DIR}; run 02_data_clean.py")
+print(f"grids available: {list(grids)}")
+
+ds = grids["native"]
 PROVENANCE = ds.attrs.get("provenance", "unknown")
 WINDOW_LABELS = json.loads(ds.attrs.get("window_labels", "{}"))
 windows = [str(w) for w in ds["window"].values]
@@ -92,135 +111,99 @@ if PROVENANCE != "destine-climate-dt":
         "pipeline and must not be reported as a replication result."
     )
 
+
 # %% [markdown]
-# ## Pooled growth curves
+# ## Fit each grid
 #
-# One GEV per (window, duration). The fitted shape parameter *k* is worth
-# reading directly: a more negative *k* is a heavier tail, so a shape that
-# becomes more negative from the historical to the scenario window is itself
-# evidence of the long-return-period end changing fastest.
+# One pooled index-flood GEV per (window, duration), then the change matrix and
+# the ordering tests. `scripts/analysis.py` does the work and is unit tested in
+# `tests/test_analysis.py` against matrices whose right answer is known by
+# construction — including that a flat matrix, or one favourable column among
+# unfavourable ones, must NOT read as support for the claim.
 
 # %%
-fits, return_levels, index_floods = {}, {}, {}
+per_grid = {}
+for name, grid_ds in grids.items():
+    print(f"fitting {name} grid ({grid_ds.sizes['cell']} cells) ...", flush=True)
+    per_grid[name] = analysis.analyse(grid_ds, windows, durations, rps)
+
+result = per_grid["native"]
+pct, pct_lo, pct_hi = result["pct"], result["pct_lo"], result["pct_hi"]
+fits = result["fits"]
+return_levels = result["return_levels"]
+index_floods = result["index_floods"]
+hist_window, future_window = windows[0], windows[1]
+
+# %% [markdown]
+# ### The fitted growth curves
+#
+# The shape parameter *k* is worth reading directly: a more negative *k* is a
+# heavier tail, so a shape that becomes more negative from the historical to the
+# scenario window is itself evidence of the long-return-period end changing most.
+
+# %%
 rows = []
 for window in windows:
     for duration in durations:
-        am = ds["annual_max"].sel(window=window, duration=duration).values
-        (xi, alpha, k), index_flood = extremes.pooled_growth_curve(am)
+        xi, alpha, k = fits[(window, duration)]
+        index_flood = index_floods[(window, duration)]
         growth = extremes.return_level(rps, xi, alpha, k)
-        fits[(window, duration)] = (xi, alpha, k)
-        index_floods[(window, duration)] = index_flood
-        return_levels[(window, duration)] = growth[:, None] * index_flood[None, :]
-        rows.append(
-            {
-                "window": window,
-                "duration_h": duration,
-                "gev_location": xi,
-                "gev_scale": alpha,
-                "gev_shape_k": k,
-                "n_cells_used": int(np.sum(np.isfinite(index_flood))),
-                "median_index_flood_mm": float(np.nanmedian(index_flood)),
-                **{f"growth_rp{int(r)}": float(g) for r, g in zip(rps, growth)},
-            }
-        )
-
+        rows.append({
+            "window": window,
+            "duration_h": duration,
+            "gev_location": xi,
+            "gev_scale": alpha,
+            "gev_shape_k": k,
+            "n_cells_used": int(np.sum(np.isfinite(index_flood))),
+            "median_index_flood_mm": float(np.nanmedian(index_flood)),
+            **{f"growth_rp{int(r)}": float(g) for r, g in zip(rps, growth)},
+        })
 fits_df = pd.DataFrame(rows)
 print(fits_df.to_string(index=False, float_format=lambda v: f"{v:.4f}"))
 
 # %% [markdown]
 # ## The change matrix
 #
-# For every (duration, return period) cell of the matrix, the fractional change
-# in return level between the two windows. Taken as the **median over cells of
-# the per-cell ratio**, not the ratio of medians: the per-cell pairing keeps
-# each cell's own climatology out of the comparison.
+# For every (duration, return period), the change in return level between the
+# two windows — taken as the **median over cells of the per-cell ratio**, not
+# the ratio of medians, so each cell's own climatology stays out of it.
 
 # %%
-hist_window, future_window = windows[0], windows[1]
-pct = np.full((len(durations), len(rps)), np.nan)
-pct_lo = np.full_like(pct, np.nan)
-pct_hi = np.full_like(pct, np.nan)
-
-for i, duration in enumerate(durations):
-    rl_h = return_levels[(hist_window, duration)]
-    rl_f = return_levels[(future_window, duration)]
-    ratio = rl_f / rl_h
-    pct[i] = 100.0 * (np.nanmedian(ratio, axis=1) - 1.0)
-    # Uncertainty from resampling cells: the pooled sample's effective
-    # independence is limited by spatial correlation, so cells are the
-    # resampling unit rather than years.
-    boot_h = extremes.bootstrap_pooled_growth(
-        ds["annual_max"].sel(window=hist_window, duration=duration).values,
-        rps, N_BOOTSTRAP, BOOTSTRAP_SEED + duration,
-    )
-    boot_f = extremes.bootstrap_pooled_growth(
-        ds["annual_max"].sel(window=future_window, duration=duration).values,
-        rps, N_BOOTSTRAP, BOOTSTRAP_SEED + 1000 + duration,
-    )
-    median_if_h = np.nanmedian(index_floods[(hist_window, duration)])
-    median_if_f = np.nanmedian(index_floods[(future_window, duration)])
-    boot_pct = 100.0 * ((boot_f * median_if_f) / (boot_h * median_if_h) - 1.0)
-    pct_lo[i], pct_hi[i] = np.nanpercentile(boot_pct, [2.5, 97.5], axis=0)
-
-matrix = pd.DataFrame(pct, index=pd.Index(durations, name="duration_h"),
-                      columns=[f"RP{int(r)}y" for r in rps])
+matrix = pd.DataFrame(
+    pct, index=pd.Index(durations, name="duration_h"),
+    columns=[f"RP{int(r)}y" for r in rps],
+)
 print("Change in return level, scenario vs historical (%):")
 print(matrix.to_string(float_format=lambda v: f"{v:+.2f}"))
 
 # %% [markdown]
 # ## Testing the ordering
 #
-# Three separate readings of the same claim, reported together because they can
-# disagree and a single number would hide that:
+# Three readings of the same claim, reported together because they can disagree
+# and a single number would hide that.
 #
 # 1. **Duration effect** — Kendall's tau of the change against duration, at each
 #    return period. The claim predicts a **negative** tau: shorter durations
 #    change more.
-# 2. **Return-period effect** — Kendall's tau of the change against return
-#    period, at each duration. The claim predicts a **positive** tau.
-# 3. **The corner test** — the claim's own words, taken literally: the shortest
-#    duration at the longest return period against the longest duration at the
-#    shortest return period.
+# 2. **Return-period effect** — tau against return period, at each duration. The
+#    claim predicts **positive**.
+# 3. **The corner test** — the claim's own words taken literally.
 
 # %%
-duration_tau = {
-    f"RP{int(r)}y": stats.kendalltau(durations, pct[:, j])
-    for j, r in enumerate(rps)
-}
-rp_tau = {
-    f"{d}h": stats.kendalltau(rps, pct[i, :])
-    for i, d in enumerate(durations)
-}
-
 print("Kendall tau of change vs DURATION (claim predicts negative):")
-for key, res in duration_tau.items():
-    print(f"  {key:>7s}  tau = {res.statistic:+.3f}   p = {res.pvalue:.4f}")
+for key, v in result["kendall_tau_vs_duration"].items():
+    print(f"  {key:>7s}  tau = {v['tau']:+.3f}   p = {v['p']:.4f}")
 print("\nKendall tau of change vs RETURN PERIOD (claim predicts positive):")
-for key, res in rp_tau.items():
-    print(f"  {key:>7s}  tau = {res.statistic:+.3f}   p = {res.pvalue:.4f}")
+for key, v in result["kendall_tau_vs_return_period"].items():
+    print(f"  {key:>7s}  tau = {v['tau']:+.3f}   p = {v['p']:.4f}")
 
-corner = {
-    "short_duration_long_rp": {
-        "duration_h": durations[0],
-        "rp_y": float(rps[-1]),
-        "change_pct": float(pct[0, -1]),
-        "ci95_pct": [float(pct_lo[0, -1]), float(pct_hi[0, -1])],
-    },
-    "long_duration_short_rp": {
-        "duration_h": durations[-1],
-        "rp_y": float(rps[0]),
-        "change_pct": float(pct[-1, 0]),
-        "ci95_pct": [float(pct_lo[-1, 0]), float(pct_hi[-1, 0])],
-    },
-}
-corner["difference_pct_points"] = (
-    corner["short_duration_long_rp"]["change_pct"]
-    - corner["long_duration_short_rp"]["change_pct"]
-)
+corner = result["corner_test"]
 print(
-    f"\nCorner test: {durations[0]} h / {int(rps[-1])} y changes by "
+    f"\nCorner test: {corner['short_duration_long_rp']['duration_h']} h / "
+    f"{int(corner['short_duration_long_rp']['rp_y'])} y changes by "
     f"{corner['short_duration_long_rp']['change_pct']:+.2f} %, "
-    f"{durations[-1]} h / {int(rps[0])} y by "
+    f"{corner['long_duration_short_rp']['duration_h']} h / "
+    f"{int(corner['long_duration_short_rp']['rp_y'])} y by "
     f"{corner['long_duration_short_rp']['change_pct']:+.2f} % — a difference of "
     f"{corner['difference_pct_points']:+.2f} percentage points."
 )
@@ -234,23 +217,34 @@ print(
 # negative results.
 
 # %%
-duration_taus = np.array([r.statistic for r in duration_tau.values()])
-rp_taus = np.array([r.statistic for r in rp_tau.values()])
-duration_holds = bool(np.all(duration_taus < 0))
-rp_holds = bool(np.all(rp_taus > 0))
-corner_holds = bool(corner["difference_pct_points"] > 0)
+verdict = result["verdict"]
+print(f"duration ordering holds at every return period : {result['duration_ordering_holds']}")
+print(f"return-period ordering holds at every duration  : {result['return_period_ordering_holds']}")
+print(f"corner test holds                              : {result['corner_test_holds']}")
+print(f"\nVERDICT (native grid): {verdict}")
 
-if duration_holds and rp_holds:
-    verdict = "supported"
-elif duration_holds or rp_holds:
-    verdict = "partially supported"
+# %% [markdown]
+# ### Does the ellipsoid correction change the answer?
+#
+# If the two grids disagree, that is itself a result and belongs in the
+# Replication Study's deviations rather than being quietly resolved in favour of
+# whichever is more convenient.
+
+# %%
+if len(per_grid) > 1:
+    print(f"{'grid':<12} {'verdict':<20} {'1h/RP20':>9} {'24h/RP2':>9}")
+    for name, res in per_grid.items():
+        print(
+            f"{name:<12} {res['verdict']:<20} "
+            f"{res['pct'][0, -1]:>+8.2f}% {res['pct'][-1, 0]:>+8.2f}%"
+        )
+    agree = len({res["verdict"] for res in per_grid.values()}) == 1
+    print(f"\ngrids agree on the verdict: {agree}")
+    biggest = np.nanmax(np.abs(per_grid["native"]["pct"] - per_grid["ellipsoid"]["pct"]))
+    print(f"largest disagreement in any matrix cell: {biggest:.2f} percentage points")
 else:
-    verdict = "contradicted"
-
-print(f"duration ordering holds at every return period : {duration_holds}")
-print(f"return-period ordering holds at every duration  : {rp_holds}")
-print(f"corner test holds                              : {corner_holds}")
-print(f"\nVERDICT: {verdict}")
+    agree = None
+    print("only one grid available — no comparison")
 
 # %% [markdown]
 # ## Magnitude, for comparison with the paper
@@ -331,17 +325,28 @@ claim_test = {
         "return period intensify proportionally more than events of long duration and "
         "short return period."
     ),
+    "grid": "native",
+    "grids_analysed": list(per_grid),
     "verdict": verdict,
-    "duration_ordering_holds": duration_holds,
-    "return_period_ordering_holds": rp_holds,
-    "corner_test_holds": corner_holds,
-    "kendall_tau_vs_duration": {
-        k: {"tau": float(v.statistic), "p": float(v.pvalue)} for k, v in duration_tau.items()
-    },
-    "kendall_tau_vs_return_period": {
-        k: {"tau": float(v.statistic), "p": float(v.pvalue)} for k, v in rp_tau.items()
-    },
+    "duration_ordering_holds": result["duration_ordering_holds"],
+    "return_period_ordering_holds": result["return_period_ordering_holds"],
+    "corner_test_holds": result["corner_test_holds"],
+    "kendall_tau_vs_duration": result["kendall_tau_vs_duration"],
+    "kendall_tau_vs_return_period": result["kendall_tau_vs_return_period"],
     "corner_test": corner,
+    # The same test on the WGS84-ellipsoid grid, so the coordinate correction's
+    # effect on the conclusion is on the record next to the conclusion itself.
+    "by_grid": {
+        name: {
+            "verdict": res["verdict"],
+            "duration_ordering_holds": res["duration_ordering_holds"],
+            "return_period_ordering_holds": res["return_period_ordering_holds"],
+            "corner_test_holds": res["corner_test_holds"],
+            "change_matrix_pct": res["pct"].tolist(),
+        }
+        for name, res in per_grid.items()
+    },
+    "grids_agree_on_verdict": agree,
     "windows": WINDOW_LABELS,
     "durations_h": durations,
     "return_periods_y": [float(r) for r in rps],
@@ -355,6 +360,17 @@ claim_test = {
 }
 with open(RESULTS_DIR / "claim_test.json", "w") as f:
     json.dump(claim_test, f, indent=2)
+
+# One summary.csv per grid, so a reader can redo the comparison without rerunning.
+for name, res in per_grid.items():
+    if name == "native":
+        continue
+    other = pd.DataFrame(
+        res["pct"], index=pd.Index(durations, name="duration_h"),
+        columns=[f"RP{int(r)}y" for r in rps],
+    )
+    other.to_csv(RESULTS_DIR / f"change_matrix_{name}.csv")
+    print(f"wrote {RESULTS_DIR / f'change_matrix_{name}.csv'}")
 
 print(f"wrote {RESULTS_DIR / 'summary.csv'}")
 print(f"wrote {RESULTS_DIR / 'gev_fits.csv'}")

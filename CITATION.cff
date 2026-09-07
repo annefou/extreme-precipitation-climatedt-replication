@@ -16,10 +16,10 @@ abstract: >-
   reverses, which is reported as a limitation.
 type: software
 authors:
-  - family-names: "Fouilloux"
-    given-names: "Anne"
-    orcid: "https://orcid.org/0000-0002-1784-2920"
-    affiliation: "LifeWatch ERIC"
+- family-names: "Fouilloux"
+  given-names: "Anne"
+  orcid: "https://orcid.org/0000-0002-1784-2920"
+  affiliation: "LifeWatch ERIC"
 repository-code: "https://github.com/annefou/extreme-precipitation-climatedt-replication"
 license: MIT
 version: "0.1.0"
@@ -36,33 +36,36 @@ date-released: "2026-09-06"
 # named was gone and "edit by hand" was the only path left. Two repos built from
 # this template then recorded the version DOI two different ways — one a
 # structured identifier, one a prose comment. Hence the automation.)
-doi: "{{ZENODO_DOI}}"
+doi: "10.5281/zenodo.22641171"
 identifiers:
-  - type: doi
-    value: "{{ZENODO_DOI}}"
-    description: "Concept DOI (resolves to the latest version) — cite the project"
-  # On release, the workflow adds:
-  #   - type: doi   value: <version DOI>  "Version DOI for vX.Y.Z — pins this exact release; cite this from nanopubs"
-  #   - type: swh   value: swh:1:rev:<commit>;origin=<repo>  "Software Heritage ID of the vX.Y.Z source tree"
+- type: doi
+  value: 10.5281/zenodo.22641171
+  description: Concept DOI (resolves to the latest version) — cite the project
+- type: doi
+  value: 10.5281/zenodo.22641172
+  description: Version DOI for v0.1.0 — pins this exact release; cite this from nanopubs
+- type: swh
+  value: swh:1:rev:9aaf85a40b018bcf636f4ebfd3df10832de8eb42;origin=https://github.com/annefou/extreme-precipitation-climatedt-replication
+  description: Software Heritage ID of the v0.1.0 source tree
 keywords:
-  - replication
-  - reproducibility
-  - FORRT
-  - nanopublication
-  - Science-Live
-  - extreme precipitation
-  - return level
-  - generalised extreme value distribution
-  - Destination Earth
-  - climate digital twin
-  - HEALPix
-  - climate change adaptation
-  - Germany
+- replication
+- reproducibility
+- FORRT
+- nanopublication
+- Science-Live
+- extreme precipitation
+- return level
+- generalised extreme value distribution
+- Destination Earth
+- climate digital twin
+- HEALPix
+- climate change adaptation
+- Germany
 references:
-  - type: article
-    title: "Climate change signals of extreme precipitation return levels for Germany in a transient convection-permitting simulation ensemble"
-    authors:
-      - family-names: "Hundhausen"
-        given-names: "Marie"
-    year: "2024"
-    doi: "10.1002/joc.8393"
+- type: article
+  title: "Climate change signals of extreme precipitation return levels for Germany in a transient convection-permitting simulation ensemble"
+  authors:
+  - family-names: "Hundhausen"
+    given-names: "Marie"
+  year: "2024"
+  doi: "10.1002/joc.8393"

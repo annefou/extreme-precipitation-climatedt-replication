@@ -122,5 +122,5 @@ The published chain is listed in [`nanopubs/PUBLISHED.md`](nanopubs/PUBLISHED.md
 
 ## Citation
 
-- This work: [`CITATION.cff`](CITATION.cff) → DOI [{{ZENODO_DOI}}]({{ZENODO_DOI}}).
+- This work: [`CITATION.cff`](CITATION.cff) → DOI [10.5281/zenodo.22641171](https://doi.org/10.5281/zenodo.22641171).
 - The original paper: [10.1002/joc.8393](https://doi.org/10.1002/joc.8393).

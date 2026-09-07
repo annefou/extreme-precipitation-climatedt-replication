@@ -5,40 +5,94 @@
       "@type": "CreativeWork",
       "@id": "ro-crate-metadata.json",
       "conformsTo": [
-        { "@id": "https://w3id.org/ro/crate/1.2" },
-        { "@id": "https://w3id.org/ro/wfrun/process/0.5" },
-        { "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0" }
+        {
+          "@id": "https://w3id.org/ro/crate/1.2"
+        },
+        {
+          "@id": "https://w3id.org/ro/wfrun/process/0.5"
+        },
+        {
+          "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0"
+        }
       ],
-      "about": { "@id": "./" }
+      "about": {
+        "@id": "./"
+      }
     },
     {
       "@id": "./",
-      "@type": ["Dataset", "ResearchObject"],
+      "@type": [
+        "Dataset",
+        "ResearchObject"
+      ],
       "name": "extreme-precipitation-climatedt-replication",
       "description": "Replication of Hundhausen et al. (2024) extreme-precipitation return-level scaling over Germany using Destination Earth Climate DT km-scale hourly data on HEALPix",
       "datePublished": "2026-09-06",
-      "license": { "@id": "https://spdx.org/licenses/MIT" },
-      "publisher": { "@id": "https://orcid.org/0000-0002-1784-2920" },
-      "author": [{ "@id": "https://orcid.org/0000-0002-1784-2920" }],
-      "mainEntity": { "@id": "Snakefile" },
+      "license": {
+        "@id": "https://spdx.org/licenses/MIT"
+      },
+      "publisher": {
+        "@id": "https://orcid.org/0000-0002-1784-2920"
+      },
+      "author": [
+        {
+          "@id": "https://orcid.org/0000-0002-1784-2920"
+        }
+      ],
+      "mainEntity": {
+        "@id": "Snakefile"
+      },
       "hasPart": [
-        { "@id": "Snakefile" },
-        { "@id": "pixi.toml" },
-        { "@id": "pixi.lock" },
-        { "@id": "Dockerfile" },
-        { "@id": "notebooks/01_data_download.py" },
-        { "@id": "notebooks/02_data_clean.py" },
-        { "@id": "notebooks/03_analysis.py" },
-        { "@id": "notebooks/04_figures.py" },
-        { "@id": "paper/" },
-        { "@id": "data/" },
-        { "@id": "results/" },
-        { "@id": "figures/" },
-        { "@id": "nanopubs/PUBLISHED.md" }
+        {
+          "@id": "Snakefile"
+        },
+        {
+          "@id": "pixi.toml"
+        },
+        {
+          "@id": "pixi.lock"
+        },
+        {
+          "@id": "Dockerfile"
+        },
+        {
+          "@id": "notebooks/01_data_download.py"
+        },
+        {
+          "@id": "notebooks/02_data_clean.py"
+        },
+        {
+          "@id": "notebooks/03_analysis.py"
+        },
+        {
+          "@id": "notebooks/04_figures.py"
+        },
+        {
+          "@id": "paper/"
+        },
+        {
+          "@id": "data/"
+        },
+        {
+          "@id": "results/"
+        },
+        {
+          "@id": "figures/"
+        },
+        {
+          "@id": "nanopubs/PUBLISHED.md"
+        }
       ],
       "citation": [
-        { "@id": "https://doi.org/10.1002/joc.8393" }
-      ]
+        {
+          "@id": "https://doi.org/10.1002/joc.8393"
+        }
+      ],
+      "identifier": [
+        "https://doi.org/10.5281/zenodo.22641172",
+        "swh:1:rev:9aaf85a40b018bcf636f4ebfd3df10832de8eb42;origin=https://github.com/annefou/extreme-precipitation-climatedt-replication"
+      ],
+      "version": "0.1.0"
     },
     {
       "@id": "https://orcid.org/0000-0002-1784-2920",
@@ -48,12 +102,38 @@
     },
     {
       "@id": "Snakefile",
-      "@type": ["File", "SoftwareSourceCode", "ComputationalWorkflow"],
+      "@type": [
+        "File",
+        "SoftwareSourceCode",
+        "ComputationalWorkflow"
+      ],
       "name": "Replication pipeline",
       "description": "Snakemake workflow orchestrating data download, cleaning, analysis, and figure generation.",
-      "programmingLanguage": { "@id": "https://w3id.org/workflowhub/workflow-ro-crate#snakemake" },
-      "input": [{ "@id": "paper/" }, { "@id": "pixi.toml" }, { "@id": "pixi.lock" }],
-      "output": [{ "@id": "results/" }, { "@id": "figures/" }, { "@id": "nanopubs/PUBLISHED.md" }]
+      "programmingLanguage": {
+        "@id": "https://w3id.org/workflowhub/workflow-ro-crate#snakemake"
+      },
+      "input": [
+        {
+          "@id": "paper/"
+        },
+        {
+          "@id": "pixi.toml"
+        },
+        {
+          "@id": "pixi.lock"
+        }
+      ],
+      "output": [
+        {
+          "@id": "results/"
+        },
+        {
+          "@id": "figures/"
+        },
+        {
+          "@id": "nanopubs/PUBLISHED.md"
+        }
+      ]
     },
     {
       "@id": "https://w3id.org/workflowhub/workflow-ro-crate#snakemake",
@@ -63,43 +143,68 @@
     },
     {
       "@id": "pixi.toml",
-      "@type": ["File", "ConfigurationFile"],
+      "@type": [
+        "File",
+        "ConfigurationFile"
+      ],
       "name": "Pixi workspace manifest (declared dependencies, features, tasks)",
       "encodingFormat": "application/toml"
     },
     {
       "@id": "pixi.lock",
-      "@type": ["File", "ConfigurationFile"],
+      "@type": [
+        "File",
+        "ConfigurationFile"
+      ],
       "name": "Pixi per-platform lockfile (every package pinned to an exact build hash)",
       "encodingFormat": "application/yaml"
     },
     {
       "@id": "Dockerfile",
-      "@type": ["File", "ConfigurationFile"],
+      "@type": [
+        "File",
+        "ConfigurationFile"
+      ],
       "name": "Container build specification",
       "encodingFormat": "text/x-dockerfile"
     },
     {
       "@id": "notebooks/01_data_download.py",
-      "@type": ["File", "SoftwareSourceCode", "Notebook"],
+      "@type": [
+        "File",
+        "SoftwareSourceCode",
+        "Notebook"
+      ],
       "name": "01 — Data download",
       "programmingLanguage": "Python"
     },
     {
       "@id": "notebooks/02_data_clean.py",
-      "@type": ["File", "SoftwareSourceCode", "Notebook"],
+      "@type": [
+        "File",
+        "SoftwareSourceCode",
+        "Notebook"
+      ],
       "name": "02 — Data clean",
       "programmingLanguage": "Python"
     },
     {
       "@id": "notebooks/03_analysis.py",
-      "@type": ["File", "SoftwareSourceCode", "Notebook"],
+      "@type": [
+        "File",
+        "SoftwareSourceCode",
+        "Notebook"
+      ],
       "name": "03 — Analysis",
       "programmingLanguage": "Python"
     },
     {
       "@id": "notebooks/04_figures.py",
-      "@type": ["File", "SoftwareSourceCode", "Notebook"],
+      "@type": [
+        "File",
+        "SoftwareSourceCode",
+        "Notebook"
+      ],
       "name": "04 — Figures",
       "programmingLanguage": "Python"
     },
@@ -125,7 +230,10 @@
     },
     {
       "@id": "nanopubs/PUBLISHED.md",
-      "@type": ["File", "TextObject"],
+      "@type": [
+        "File",
+        "TextObject"
+      ],
       "name": "Registry of published FORRT nanopub URIs",
       "description": "URIs of the published Quote / AIDA / FORRT Claim / Replication Study / Replication Outcome / CiTO Citation steps."
     },

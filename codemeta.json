@@ -8,8 +8,12 @@
   "dateModified": "2026-09-06",
   "license": "https://spdx.org/licenses/MIT",
   "codeRepository": "https://github.com/annefou/extreme-precipitation-climatedt-replication",
-  "identifier": "{{ZENODO_DOI}}",
-  "@id": "{{ZENODO_DOI}}",
+  "identifier": [
+    "https://doi.org/10.5281/zenodo.22641171",
+    "https://doi.org/10.5281/zenodo.22641172",
+    "swh:1:rev:9aaf85a40b018bcf636f4ebfd3df10832de8eb42;origin=https://github.com/annefou/extreme-precipitation-climatedt-replication"
+  ],
+  "@id": "https://doi.org/10.5281/zenodo.22641171",
   "programmingLanguage": {
     "@type": "ComputerLanguage",
     "name": "Python",

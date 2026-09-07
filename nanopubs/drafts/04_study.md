@@ -105,6 +105,12 @@ Coordinate systems: the Climate DT is delivered on HEALPix defined on a sphere. 
 analysis is repeated on HEALPix on the WGS84 ellipsoid, converted with healpix-resample's
 conservative (mass-preserving) operator, and both grids are reported.
 
+Data attribution (Destination Earth Terms and Conditions v2.0, Art. 3.4): this
+data is created based on data of the European Union, using the Destination Earth
+Platform, but has been modified by Anne Fouilloux. The results are a derived
+product - aggregation and transformation of Climate DT output - and are not
+original DestinE Data. The underlying hourly data is not redistributed.
+
 Software: Python; numpy, scipy, xarray, earthkit-data, polytope-client, healpix-geo,
 healpix-resample. The extreme-value estimator, the coordinate conversion and the verdict
 logic are unit tested — the GEV against scipy.stats.genextreme, and the verdict against

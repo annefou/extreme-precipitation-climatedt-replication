@@ -5,6 +5,16 @@
 > transient convection-permitting simulation ensemble*,
 > [10.1002/joc.8393](https://doi.org/10.1002/joc.8393).
 
+:::{attention} Destination Earth data attribution
+This data is created based on data of the European Union, using the Destination Earth Platform, but has been modified by Anne Fouilloux.
+
+Derived from Destination Earth Climate DT output by aggregation and transformation
+(hourly accumulation, annual block maxima, extreme-value fitting). It is **not**
+original DestinE data and must not be presented as such. DestinE Terms and
+Conditions v2.0, Articles 2.3, 3.3 and 3.4. The underlying hourly data is not
+redistributed here; retrieval requires your own DESP account.
+:::
+
 ## The claim under test
 
 From the paper's Abstract, restated in its Conclusions:

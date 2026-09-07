@@ -329,12 +329,19 @@ rl_ds = xr.Dataset(
         "latitude": ds["latitude"],
         "longitude": ds["longitude"],
     },
-    attrs={"provenance": PROVENANCE, "units": "mm", "created_by": "notebooks/03_analysis.py"},
+    attrs={
+        "provenance": PROVENANCE,
+        "units": "mm",
+        "created_by": "notebooks/03_analysis.py",
+        **climatedt.attribution_attrs(),
+    },
 )
 rl_ds.to_netcdf(RESULTS_DIR / "return_levels.nc")
 
 claim_test = {
     "data_provenance": PROVENANCE,
+    "attribution": climatedt.DESTINE_ATTRIBUTION,
+    "licence_note": climatedt.DESTINE_LICENCE_NOTE,
     "claim": (
         "Under global warming, extreme precipitation events of short duration and long "
         "return period intensify proportionally more than events of long duration and "

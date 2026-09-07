@@ -323,6 +323,7 @@ def combine(per_window: dict[str, xr.Dataset], grid: str) -> xr.Dataset:
             "source": "Destination Earth Climate DT generation 2, IFS-NEMO, SSP3-7.0",
             "window_labels": json.dumps({w: climatedt.WINDOWS[w]["label"] for w in windows}),
             "created_by": "notebooks/02_data_clean.py",
+            **climatedt.attribution_attrs(),
         },
     )
     out["annual_max"].attrs.update(units="mm", long_name="Annual maximum accumulation")

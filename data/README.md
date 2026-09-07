@@ -1,4 +1,22 @@
-# `data/` — downloaded artefacts, never committed
+# `data/`
+
+:::{attention} Destination Earth data attribution
+This data is created based on data of the European Union, using the Destination Earth Platform, but has been modified by Anne Fouilloux.
+:::
+
+**What is committed here, and why.** `clean/annual_maxima*.nc` are **derived**
+products: the annual maximum of 1/3/6/12/24-hour precipitation accumulations per
+grid cell, i.e. an aggregation and transformation of Destination Earth Climate DT
+output, reduced by a factor of roughly 1,750 from the hourly input. DestinE Terms
+and Conditions v2.0 Art. 3.3 assigns the intellectual property in such derived
+data to the user who created it, and Art. 3.4 requires the attribution above plus
+a clear statement that changes were made. They are not original DestinE data.
+
+**What is NOT committed.** The hourly Climate DT retrieval itself (`raw/`, ~23 GB)
+is never committed and never redistributed. Art. 2.5 forbids forwarding DestinE
+Data to third parties without written consent of the European Commission.
+Reproducing it needs your own DESP account — see the repository README.
+
 
 This directory holds the raw and cleaned datasets used by the replication pipeline. **Files in this directory are never committed to git** (`.gitignore` excludes everything except this README).
 

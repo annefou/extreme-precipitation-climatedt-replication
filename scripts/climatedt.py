@@ -191,6 +191,28 @@ def clmn_global_request(window: str, year: int, param: str = PARAM_AVG_2T) -> di
 
 REAL_PROVENANCE = "destine-climate-dt"
 
+# DestinE Terms and Conditions v2.0 (8 July 2025), Article 3.4: attribution
+# "must be displayed prominently and provided alongside, within, or co-located
+# with the ... data", in this exact wording, and derived data must be clearly
+# identified as changed. Art. 3.4 names aggregation and transformation as
+# "changes". Stamped into every artefact the pipeline writes so it travels with
+# a file that is downloaded on its own.
+DESTINE_ATTRIBUTION = (
+    'This data is created based on data of the European Union, using the Destination Earth Platform, but has been modified by Anne Fouilloux.'
+)
+DESTINE_LICENCE_NOTE = (
+    'Derived product. Aggregation and transformation of Destination Earth Climate DT output (hourly accumulation, annual block maxima, extreme-value fitting). NOT original DestinE Data and must not be presented as such. DestinE Terms and Conditions v2.0, Art. 2.3 / 3.3 / 3.4. The underlying hourly DestinE Data is not redistributed.'
+)
+
+
+def attribution_attrs() -> dict:
+    """NetCDF attributes carrying the DestinE attribution required by Art. 3.4."""
+    return {
+        "attribution": DESTINE_ATTRIBUTION,
+        "licence_note": DESTINE_LICENCE_NOTE,
+        "source_terms": "https://platform.destine.eu/terms-and-conditions/",
+    }
+
 
 def existing_real_artefact(path: Path) -> bool:
     """True if `path` is a NetCDF this pipeline produced from real Climate DT data.

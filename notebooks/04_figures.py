@@ -120,7 +120,14 @@ if not IS_REAL:
         rotation=22, weight="bold", zorder=10,
     )
 
-fig.tight_layout(rect=(0, 0, 1, 0.92))
+# Art. 3.4: the attribution travels with the figure, which is the artefact most
+# likely to be reused on its own.
+fig.text(0.5, 0.005,
+         "Created based on data of the European Union, using the Destination Earth "
+         "Platform; modified by Anne Fouilloux.",
+         ha="center", va="bottom", fontsize=7, color="0.4")
+
+fig.tight_layout(rect=(0, 0.02, 1, 0.92))
 fig.savefig(FIGURES_DIR / "main_result.png", dpi=DPI, bbox_inches="tight")
 fig.savefig(FIGURES_DIR / "main_result.pdf", bbox_inches="tight")
 # plt.show() after savefig, never matplotlib.use('Agg') — the Jupyter Book

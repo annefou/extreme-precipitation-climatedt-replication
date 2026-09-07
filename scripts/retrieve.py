@@ -137,6 +137,7 @@ def fetch_month(window: str, year: int, month: int, raw_dir: Path) -> Path:
         polytope_address=climatedt.POLYTOPE_ADDRESS,
         request=json.dumps({k: v for k, v in request.items() if k != "feature"}),
         polygon=json.dumps(climatedt.polygon_provenance()),
+        **climatedt.attribution_attrs(),
     )
     # Write to a temporary name and rename, so an interrupted run never leaves a
     # truncated NetCDF that the next run would happily treat as cached.

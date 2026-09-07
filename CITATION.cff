@@ -22,6 +22,17 @@ authors:
   affiliation: "LifeWatch ERIC"
 repository-code: "https://github.com/annefou/extreme-precipitation-climatedt-replication"
 license: MIT
+# MIT covers the CODE. The derived data in data/clean/ and results/ is governed
+# by the Destination Earth Terms and Conditions v2.0 (Art. 2.3, 3.3, 3.4):
+# derived products may be distributed, the original hourly DestinE Data may not,
+# and the attribution below is mandatory and must appear prominently.
+license-url: "https://platform.destine.eu/terms-and-conditions/"
+notes: >-
+  This data is created based on data of the European Union, using the
+  Destination Earth Platform, but has been modified by Anne Fouilloux.
+  Derived product: aggregation and transformation of Destination Earth
+  Climate DT output. NOT original DestinE Data. The underlying hourly
+  DestinE Data is not redistributed in this repository.
 version: "0.1.0"
 date-released: "2026-09-06"
 # Identifiers below are recorded AUTOMATICALLY on each release by

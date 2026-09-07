@@ -1,5 +1,7 @@
 {
   "data_provenance": "destine-climate-dt",
+  "attribution": "This data is created based on data of the European Union, using the Destination Earth Platform, but has been modified by Anne Fouilloux.",
+  "licence_note": "Derived product. Aggregation and transformation of Destination Earth Climate DT output (hourly accumulation, annual block maxima, extreme-value fitting). NOT original DestinE Data and must not be presented as such. DestinE Terms and Conditions v2.0, Art. 2.3 / 3.3 / 3.4. The underlying hourly DestinE Data is not redistributed.",
   "claim": "Under global warming, extreme precipitation events of short duration and long return period intensify proportionally more than events of long duration and short return period.",
   "grid": "native",
   "grids_analysed": [

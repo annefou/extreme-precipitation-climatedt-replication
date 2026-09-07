@@ -1,0 +1,176 @@
+{
+  "data_provenance": "destine-climate-dt",
+  "claim": "Under global warming, extreme precipitation events of short duration and long return period intensify proportionally more than events of long duration and short return period.",
+  "grid": "native",
+  "grids_analysed": [
+    "native",
+    "ellipsoid"
+  ],
+  "verdict": "partially supported",
+  "duration_ordering_holds": true,
+  "return_period_ordering_holds": false,
+  "corner_test_holds": true,
+  "kendall_tau_vs_duration": {
+    "RP2y": {
+      "tau": -0.9999999999999999,
+      "p": 0.016666666666666666
+    },
+    "RP5y": {
+      "tau": -0.9999999999999999,
+      "p": 0.016666666666666666
+    },
+    "RP10y": {
+      "tau": -0.9999999999999999,
+      "p": 0.016666666666666666
+    },
+    "RP20y": {
+      "tau": -0.9999999999999999,
+      "p": 0.016666666666666666
+    }
+  },
+  "kendall_tau_vs_return_period": {
+    "1h": {
+      "tau": 1.0,
+      "p": 0.08333333333333333
+    },
+    "3h": {
+      "tau": 1.0,
+      "p": 0.08333333333333333
+    },
+    "6h": {
+      "tau": 1.0,
+      "p": 0.08333333333333333
+    },
+    "12h": {
+      "tau": 1.0,
+      "p": 0.08333333333333333
+    },
+    "24h": {
+      "tau": -1.0,
+      "p": 0.08333333333333333
+    }
+  },
+  "corner_test": {
+    "short_duration_long_rp": {
+      "duration_h": 1,
+      "rp_y": 20.0,
+      "change_pct": 16.883434612309188
+    },
+    "long_duration_short_rp": {
+      "duration_h": 24,
+      "rp_y": 2.0,
+      "change_pct": 2.3915407124706523
+    },
+    "difference_pct_points": 14.491893899838535
+  },
+  "by_grid": {
+    "native": {
+      "verdict": "partially supported",
+      "duration_ordering_holds": true,
+      "return_period_ordering_holds": false,
+      "corner_test_holds": true,
+      "change_matrix_pct": [
+        [
+          9.223379822428978,
+          12.748988052605647,
+          14.88788007154751,
+          16.883434612309188
+        ],
+        [
+          8.466275053984473,
+          11.217262612017098,
+          12.876547084569179,
+          14.414260201380657
+        ],
+        [
+          6.721134369073289,
+          8.766484918643691,
+          9.91763798764862,
+          10.934483515347026
+        ],
+        [
+          4.730794295228979,
+          4.960496376986723,
+          5.030363786037562,
+          5.057535633663468
+        ],
+        [
+          2.3915407124706523,
+          1.7986373986138338,
+          1.2012054271092643,
+          0.5286670267001359
+        ]
+      ]
+    },
+    "ellipsoid": {
+      "verdict": "partially supported",
+      "duration_ordering_holds": true,
+      "return_period_ordering_holds": false,
+      "corner_test_holds": true,
+      "change_matrix_pct": [
+        [
+          9.223379822428978,
+          12.748988052605647,
+          14.88788007154751,
+          16.883434612309188
+        ],
+        [
+          8.466275053984473,
+          11.217262612017098,
+          12.876547084569179,
+          14.414260201380657
+        ],
+        [
+          6.721134369073289,
+          8.766484918643691,
+          9.91763798764862,
+          10.934483515347026
+        ],
+        [
+          4.730794295228979,
+          4.960496376986723,
+          5.030363786037562,
+          5.057535633663468
+        ],
+        [
+          2.3915407124706523,
+          1.7986373986138338,
+          1.2012054271092643,
+          0.5286670267001359
+        ]
+      ]
+    }
+  },
+  "grids_agree_on_verdict": true,
+  "windows": {
+    "hist": "historical 1991-2010",
+    "ssp370": "SSP3-7.0 2030-2049"
+  },
+  "durations_h": [
+    1,
+    3,
+    6,
+    12,
+    24
+  ],
+  "return_periods_y": [
+    2.0,
+    5.0,
+    10.0,
+    20.0
+  ],
+  "n_cells": 8697,
+  "n_years_per_window": 20,
+  "warming_k": 0.9294940598881567,
+  "bootstrap": {
+    "n": 400,
+    "seed": 20260906,
+    "unit": "cells"
+  },
+  "ellipsoid_mask_sensitivity": {
+    "n_cells": 8697,
+    "cells_changing_membership": 350,
+    "fraction": 0.04024,
+    "max_latitude_shift_deg": 0.1279
+  }
+}

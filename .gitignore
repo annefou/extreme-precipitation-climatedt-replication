@@ -61,16 +61,15 @@ reference/
 # Results — large numerical outputs (commit only summary CSVs you reference in figures)
 results/raw/
 
-# Pipeline outputs, NOT committed while the study runs on the synthetic
-# stand-in. Until DestinE credentials are available, every number in results/
-# and every figure is a smoke test (provenance=synthetic, stamped across the
-# figure). A committed synthetic figure is one screenshot away from being
-# mistaken for a replication result, and the FORRT Outcome is signed and
-# permanent. CI regenerates both on every run, so nothing is lost by not
-# committing them. Remove these three lines once the real retrieval has run.
-results/
-figures/main_result.*
-figures/ordering_tests.png
+# results/ and figures/ ARE committed now: they are real Destination Earth
+# output (provenance=destine-climate-dt), and they are what the Jupyter Book
+# renders and what the FORRT Outcome will cite. They were excluded while the
+# pipeline ran on the synthetic stand-in, when a committed figure would have
+# been one screenshot away from being mistaken for a result.
+#
+# Logs and the earthkit download cache stay out.
+results/logs/
+data/.earthkit-cache/
 
 # Docker
 docker-image.tar.gz

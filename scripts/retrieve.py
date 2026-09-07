@@ -56,6 +56,45 @@ def all_months(windows: list[str] | None = None) -> list[tuple[str, int, int]]:
     return out
 
 
+# Refuse to start another ~350 MB download with less than this much room. The
+# first two runs both ended in a full filesystem, and the second one did not
+# merely fail -- it WEDGED: SQLite raised "database or disk is full", the retry
+# loop caught it, and the process sat in backoff for six and a half hours
+# without progress or complaint. Failing loudly beats hanging quietly.
+MIN_FREE_BYTES = 5_000_000_000
+
+# Cache entries older than this are finished with: the NetCDF has been written
+# and nothing re-reads a response. Anything newer may be an in-flight download
+# belonging to another worker.
+CACHE_KEEP_SECONDS = 900
+
+
+def sweep_cache(cache_dir: Path) -> int:
+    """Delete finished download-cache entries. Returns bytes freed.
+
+    earthkit's own `maximum-cache-size` does NOT hold under this workload. With
+    four workers each adding ~350 MB every ~40 s, a 6 GB cap was respected for
+    roughly 80 months and then drifted: the cache reached 38 GB and filled a
+    246 GB disk. So the cap is kept only as a backstop and the retrieval takes
+    responsibility for its own garbage, which is safe here because a response is
+    never needed twice -- the month's NetCDF is the artefact, and an existing
+    month is skipped without any request at all.
+    """
+    if not cache_dir.exists():
+        return 0
+    cutoff = time.time() - CACHE_KEEP_SECONDS
+    freed = 0
+    for entry in cache_dir.glob("polytope-*.cache"):
+        try:
+            stat = entry.stat()
+            if stat.st_mtime < cutoff:
+                entry.unlink()
+                freed += stat.st_size
+        except OSError:
+            continue  # another worker got there first, or it is locked
+    return freed
+
+
 def fetch_month(window: str, year: int, month: int, raw_dir: Path) -> Path:
     """One calendar month of hourly precipitation over Germany, as NetCDF.
 
@@ -64,6 +103,14 @@ def fetch_month(window: str, year: int, month: int, raw_dir: Path) -> Path:
     out = month_path(raw_dir, window, year, month)
     if out.exists():
         return out
+
+    free = shutil.disk_usage(raw_dir).free
+    if free < MIN_FREE_BYTES:
+        raise RuntimeError(
+            f"only {free / 1e9:.1f} GB free on the data disk, below the "
+            f"{MIN_FREE_BYTES / 1e9:.0f} GB floor. Refusing to start another "
+            "download rather than wedging on a full filesystem."
+        )
 
     request = climatedt.clte_polygon_request(window, year, month)
     ds = climatedt.to_study_schema(climatedt.retrieve(request).to_xarray())
@@ -129,8 +176,15 @@ def retrieve_all(
     # Bound the download cache BEFORE the first request. earthkit's default
     # policy caches into a temp directory it only cleans at process exit, which
     # filled the root filesystem 50 months into the first real run.
-    applied = climatedt.configure_cache(cache_dir or raw_dir.parent / ".earthkit-cache")
+    cache_root = cache_dir or raw_dir.parent / ".earthkit-cache"
+    applied = climatedt.configure_cache(cache_root)
+    freed = sweep_cache(cache_root)
     print(f"cache: {applied}", flush=True)
+    print(
+        f"swept {freed / 1e9:.1f} GB of stale cache before starting; "
+        f"{shutil.disk_usage(raw_dir).free / 1e9:.0f} GB free",
+        flush=True,
+    )
 
     wanted = all_months(windows)
     todo = [t for t in wanted if not month_path(raw_dir, *t).exists()]
@@ -158,6 +212,7 @@ def retrieve_all(
                 print(f"[{i}/{len(todo)}] FAILED {window} {year}-{month:02d}", flush=True)
                 continue
             done.append(path)
+            sweep_cache(cache_root)
             elapsed = time.time() - started
             eta = elapsed / i * (len(todo) - i)
             size_mb = path.stat().st_size / 1e6

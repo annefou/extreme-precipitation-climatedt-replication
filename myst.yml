@@ -14,7 +14,7 @@ project:
     - file: notebooks/02_data_clean.ipynb
     - file: notebooks/03_analysis.ipynb
     - file: notebooks/04_figures.ipynb
-    - file: nanopubs/README.md
+    - file: nanopubs/PUBLISHED.md
 site:
   title: "Extreme precipitation return levels over Germany, replicated with Destination Earth"
 # IMPORTANT: do NOT set base_url here — MyST silently ignores the key.

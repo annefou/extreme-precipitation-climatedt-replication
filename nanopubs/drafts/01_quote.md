@@ -62,11 +62,13 @@ phrase here. Leave empty for a single short quote.
 
 Why this quote matters and what the replication tests. Connect the paper's claim to the work this repo does. Don't repeat the quote.
 
-> **Review this — the Comment is meant to be your interpretation, not the agent's.**
-> Proposed wording below; edit or replace.
+> **Anne's wording**, tightened while reviewing the chain in the publishing
+> wizard and back-ported here on 2026-09-07. `chain-draft.json` is GENERATED from
+> this file by `pixi run build-chain-draft`, so an edit made only there is lost
+> on the next rebuild — this draft is the source of truth.
 
 ```
-This is the paper's transferable finding, and the one this replication tests. The magnitude (6 or 8.5% per K) is specific to a COSMO-CLM ensemble over Germany and could only be re-measured elsewhere, not tested. The second sentence asserts a STRUCTURE — that the intensification is largest for short durations and long return periods — which is a hypothesis about thermodynamics and should hold in other domains and other models if it is real. That makes it reusable: a later chain can extend it to another country with the same data. It is also the adaptation-relevant half, because short-duration, long-return-period events are what urban drainage is designed around.
+The magnitude (6 or 8.5% per K) is specific to a COSMO-CLM ensemble over Germany and could only be re-measured elsewhere, not tested. The second sentence proposes a STRUCTURE: intensification is greatest for short durations and long return periods. This thermodynamic hypothesis should hold across domains and models if real, making it reusable and adaptation-relevant, since urban drainage is designed around such events.
 ```
 
 Character count: 669 / 800.

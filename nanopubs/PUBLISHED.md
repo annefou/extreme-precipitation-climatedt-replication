@@ -6,19 +6,46 @@ This file is the canonical registry of published nanopub URIs for this replicati
 
 | Step | Template | URI | Published |
 |---|---|---|---|
-| 01 | Quote-with-comment (or PICO / PCC) | _not yet published_ | |
-| 02 | AIDA Sentence | _not yet published_ | |
-| 03 | FORRT Claim | _not yet published_ | |
-| 04 | FORRT Replication Study | _not yet published_ | |
-| 05 | FORRT Replication Outcome | _not yet published_ | |
-| 06 | CiTO Citation | _not yet published_ | |
+| 01 | Quote-with-comment | https://w3id.org/sciencelive/np/RAGFxQEhyijfEXZ0fZCdsnPkfa9xhyi3EtkfeACdxU7EQ | 2026-09-07 |
+| 02 | AIDA Sentence | https://w3id.org/sciencelive/np/RAT7-YqPy3iaywOuuWKpSMl_pexB8Dfe8bqriXzBnW_ek | 2026-09-07 |
+| 03 | FORRT Claim | https://w3id.org/sciencelive/np/RAz-DKQA8-UhwW_w9QMtuRAcmimmE-1zxz_dGkI8_3llo | 2026-09-07 |
+| 04 | FORRT Replication Study | https://w3id.org/sciencelive/np/RAazzwF05nb7FbNBMNBoNLGRygKzqD-CMFgo8fA4zbS6s | 2026-09-07 |
+| 05 | FORRT Replication Outcome | https://w3id.org/sciencelive/np/RACgxEzHoCa6VWoEV7tFPLMAhqrwXMvUlzg3KuWwHl0l4 | 2026-09-07 |
+| 06 | CiTO Citation | https://w3id.org/sciencelive/np/RAbhgs4f839xduTVH0aI6GifJz3kZxGmxWi4gI7WDYb1I | 2026-09-07 |
+
+**Chain shape:** paper-rooted — Quote-with-comment → AIDA → FORRT Claim →
+Replication Study → Replication Outcome → CiTO Citation. Published 2026-09-07 on the
+Science Live platform, in that order, each step carrying the previous step's URI.
+
+**Outcome:** `validated`. The CiTO relation to the original paper is `confirms`.
+
+Full URIs, for copy-paste:
+
+```
+01 quote    https://w3id.org/sciencelive/np/RAGFxQEhyijfEXZ0fZCdsnPkfa9xhyi3EtkfeACdxU7EQ
+02 aida     https://w3id.org/sciencelive/np/RAT7-YqPy3iaywOuuWKpSMl_pexB8Dfe8bqriXzBnW_ek
+03 claim    https://w3id.org/sciencelive/np/RAz-DKQA8-UhwW_w9QMtuRAcmimmE-1zxz_dGkI8_3llo
+04 study    https://w3id.org/sciencelive/np/RAazzwF05nb7FbNBMNBoNLGRygKzqD-CMFgo8fA4zbS6s
+05 outcome  https://w3id.org/sciencelive/np/RACgxEzHoCa6VWoEV7tFPLMAhqrwXMvUlzg3KuWwHl0l4
+06 citation https://w3id.org/sciencelive/np/RAbhgs4f839xduTVH0aI6GifJz3kZxGmxWi4gI7WDYb1I
+```
+
+## What the chain records
+
+| | |
+|---|---|
+| Claim tested | Short-duration, long-return-period extremes intensify most under warming |
+| Original paper | [10.1002/joc.8393](https://doi.org/10.1002/joc.8393) — Hundhausen et al. 2024 |
+| Replication data | Destination Earth Climate DT gen 2, IFS-NEMO, SSP3-7.0 |
+| Verdict | **validated** — largest change +16.88 % at 1 h / 20 y, the corner the paper names |
+| Software archive | [10.5281/zenodo.22641172](https://doi.org/10.5281/zenodo.22641172) (v0.1.0 version DOI) |
 
 ## Optional layers
 
 | Step | Template | URI | Published |
 |---|---|---|---|
 | 07 | Research Software (if applicable) | _not applicable / not yet published_ | |
-| 08 | Research Synthesis (if applicable) | _not applicable / not yet published_ | |
+| 08 | Research Synthesis (if applicable) | _not applicable — one chain; a synthesis is for several chains testing facets of one property_ | |
 
 ## Format
 

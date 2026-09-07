@@ -4,7 +4,7 @@
   "chain_shape": "paper-rooted",
   "source": {
     "repository": "https://github.com/annefou/extreme-precipitation-climatedt-replication",
-    "commit": "fe56645281f996187b1e09af4f42cc0a78324cb8",
+    "commit": "a35b7fbe0c3b6693de3636b04339766d59b352d1",
     "figure": "figures/main_result.png"
   },
   "steps": [
@@ -22,7 +22,7 @@
         "quotation": "nanopubs/drafts/01_quote.md",
         "comment": "nanopubs/drafts/01_quote.md"
       },
-      "published_uri": null
+      "published_uri": "https://w3id.org/sciencelive/np/RAGFxQEhyijfEXZ0fZCdsnPkfa9xhyi3EtkfeACdxU7EQ"
     },
     {
       "step": "02_aida",
@@ -34,7 +34,7 @@
       "provenance": {
         "aida": "nanopubs/drafts/02_aida.md"
       },
-      "published_uri": null
+      "published_uri": "https://w3id.org/sciencelive/np/RAT7-YqPy3iaywOuuWKpSMl_pexB8Dfe8bqriXzBnW_ek"
     },
     {
       "step": "03_claim",
@@ -55,7 +55,7 @@
       "manual": [
         "forrtType"
       ],
-      "published_uri": null
+      "published_uri": "https://w3id.org/sciencelive/np/RAz-DKQA8-UhwW_w9QMtuRAcmimmE-1zxz_dGkI8_3llo"
     },
     {
       "step": "04_study",
@@ -80,7 +80,7 @@
       "manual": [
         "type"
       ],
-      "published_uri": null
+      "published_uri": "https://w3id.org/sciencelive/np/RAazzwF05nb7FbNBMNBoNLGRygKzqD-CMFgo8fA4zbS6s"
     },
     {
       "step": "05_outcome",
@@ -112,7 +112,7 @@
         "validationStatus",
         "confidenceLevel"
       ],
-      "published_uri": null
+      "published_uri": "https://w3id.org/sciencelive/np/RACgxEzHoCa6VWoEV7tFPLMAhqrwXMvUlzg3KuWwHl0l4"
     },
     {
       "step": "06_citation",
@@ -129,7 +129,7 @@
       "provenance": {
         "st02": "cites = validation status (see 05_outcome); cited = CITATION.cff references[article]"
       },
-      "published_uri": null
+      "published_uri": "https://w3id.org/sciencelive/np/RAbhgs4f839xduTVH0aI6GifJz3kZxGmxWi4gI7WDYb1I"
     }
   ],
   "carry_forward": [

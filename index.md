@@ -11,8 +11,12 @@ This data is created based on data of the European Union, using the Destination 
 Derived from Destination Earth Climate DT output by aggregation and transformation
 (hourly accumulation, annual block maxima, extreme-value fitting). It is **not**
 original DestinE data and must not be presented as such. DestinE Terms and
-Conditions v2.0, Articles 2.3, 3.3 and 3.4. The underlying hourly data is not
-redistributed here; retrieval requires your own DESP account.
+Conditions v2.0, Articles 2.3, 3.3 and 3.4.
+
+The ~23 GB hourly retrieval is **not** redistributed (Art. 2.5); the derived
+annual maxima and return levels are, so the result can be checked without a
+DestinE account. [`data/README.md`](data/README.md) sets out what is shared,
+what is not, and why the shared files cannot be used to reconstruct the original.
 :::
 
 ## The claim under test

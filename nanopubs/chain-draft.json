@@ -4,7 +4,7 @@
   "chain_shape": "paper-rooted",
   "source": {
     "repository": "https://github.com/annefou/extreme-precipitation-climatedt-replication",
-    "commit": "c719ef0315c05ce2020f3f199b7a1f5004fa5340",
+    "commit": "710b561811338bcc7e651ce4c4285be290c1c0ca",
     "figure": "figures/main_result.png"
   },
   "steps": [
@@ -89,6 +89,7 @@
       "prefill": {
         "outcome": "climatedt-germany-duration-rp-outcome",
         "label": "Climate DT confirms that short-duration, long-return-period extremes change most over Germany",
+        "repo": "https://doi.org/10.5281/zenodo.22641172",
         "date": "2026-09-06",
         "validationStatus": "https://w3id.org/sciencelive/o/terms/Validated",
         "conclusion": "The claim is confirmed. In the Destination Earth Climate DT, the largest increase in extreme precipitation return level over Germany between 1991-2010 and SSP3-7.0 2030-2049 falls at the shortest duration and the longest return period examined - +16.9% at 1 hour / 20 years - which is exactly the corner the original identifies. The change decreases monotonically with duration at every return period examined (Kendall tau = -1.000).\n\nThis holds in a modelling framework sharing neither its input data nor its statistics with the original: a single coupled global Earth-system model at about 5 km under SSP3-7.0, analysed with a regional index-flood GEV fitted to annual maxima, against the original's four-member convection-permitting COSMO-CLM ensemble at 2.8 km under RCP 8.5 analysed with a peak-over-threshold exponential fit. The agreement therefore tests the claim rather than the pipeline.",
@@ -99,6 +100,7 @@
       "provenance": {
         "outcome": "nanopubs/drafts/05_outcome.md",
         "label": "nanopubs/drafts/05_outcome.md",
+        "repo": "CITATION.cff",
         "date": "CITATION.cff",
         "validationStatus": "nanopubs/drafts/05_outcome.md",
         "conclusion": "nanopubs/drafts/05_outcome.md",

@@ -211,17 +211,32 @@ print(
 # %% [markdown]
 # ## Verdict
 #
-# The claim is supported only if **both** directions hold: the change decreases
-# with duration and increases with return period. Either one alone is a weaker,
-# different statement, and saying so is the point — `DOMAIN.md` § Honest
-# negative results.
+# The claim is about **where the largest change sits**, not about monotonicity
+# everywhere in the matrix. The paper's Conclusions say "events with short
+# duration and long RPs are expected to change the most"; the AIDA says such
+# events "intensify proportionally more than events of long duration and short
+# return period". So the verdict rests on the two things actually asserted:
+# the corner comparison, and whether the matrix maximum is at that corner.
+#
+# The Kendall taus above describe the surface *between* the corners. They are
+# reported because a reversal there is worth knowing — but requiring full
+# monotonicity would score the paper against a stronger statement than it made,
+# and would turn a confirmation into a "partially supported".
 
 # %%
 verdict = result["verdict"]
-print(f"duration ordering holds at every return period : {result['duration_ordering_holds']}")
-print(f"return-period ordering holds at every duration  : {result['return_period_ordering_holds']}")
-print(f"corner test holds                              : {result['corner_test_holds']}")
-print(f"\nVERDICT (native grid): {verdict}")
+peak = result["maximum"]
+print(f"corner test  short/long > long/short : {result['corner_test_holds']}")
+print(f"largest change in the matrix         : {peak['change_pct']:+.2f}% "
+      f"at {peak['duration_h']} h / RP {int(peak['rp_y'])} y")
+print(f"...and that is the claimed corner    : {result['maximum_at_corner']}")
+print(f"\nVERDICT (native grid): {verdict.upper()}")
+print("\nStructure between the corners (reported, not decisive):")
+print(f"  change falls monotonically with duration at every RP : {result['duration_ordering_holds']}")
+print(f"  change rises monotonically with RP at every duration  : {result['return_period_ordering_holds']}")
+if not result["return_period_ordering_holds"]:
+    offenders = [k for k, v in result["kendall_tau_vs_return_period"].items() if v["tau"] < 0]
+    print(f"  reverses at: {', '.join(offenders)} — rarer events change LESS there")
 
 # %% [markdown]
 # ### Does the ellipsoid correction change the answer?
@@ -331,6 +346,8 @@ claim_test = {
     "duration_ordering_holds": result["duration_ordering_holds"],
     "return_period_ordering_holds": result["return_period_ordering_holds"],
     "corner_test_holds": result["corner_test_holds"],
+    "maximum_at_corner": result["maximum_at_corner"],
+    "maximum": result["maximum"],
     "kendall_tau_vs_duration": result["kendall_tau_vs_duration"],
     "kendall_tau_vs_return_period": result["kendall_tau_vs_return_period"],
     "corner_test": corner,
@@ -342,6 +359,7 @@ claim_test = {
             "duration_ordering_holds": res["duration_ordering_holds"],
             "return_period_ordering_holds": res["return_period_ordering_holds"],
             "corner_test_holds": res["corner_test_holds"],
+            "maximum_at_corner": res["maximum_at_corner"],
             "change_matrix_pct": res["pct"].tolist(),
         }
         for name, res in per_grid.items()

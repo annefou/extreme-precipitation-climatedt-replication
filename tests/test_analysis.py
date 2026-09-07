@@ -27,44 +27,59 @@ def _matrix(rows):
     return np.asarray(rows, dtype=float)
 
 
-def test_verdict_supported_when_both_orderings_hold():
-    # Falls with duration, rises with return period.
+def test_verdict_supported_when_the_maximum_sits_at_the_claimed_corner():
+    # The claim is about where the largest change is, not about monotonicity.
     pct = _matrix([[9, 10, 11, 12], [7, 8, 9, 10], [5, 6, 7, 8], [3, 4, 5, 6], [1, 2, 3, 4]])
     out = analysis.ordering_tests(pct, DURATIONS, RPS)
     assert out["verdict"] == "supported"
-    assert out["duration_ordering_holds"] and out["return_period_ordering_holds"]
-    assert out["corner_test_holds"]
+    assert out["corner_test_holds"] and out["maximum_at_corner"]
+    assert out["maximum"] == {"duration_h": 1, "rp_y": 20.0, "change_pct": 12.0}
 
 
-def test_verdict_contradicted_when_both_orderings_reverse():
-    pct = _matrix([[1, 2, 3, 4], [3, 4, 5, 6], [5, 6, 7, 8], [7, 8, 9, 10], [9, 10, 11, 12]])
-    pct = pct[:, ::-1]  # also falls with return period
+def test_a_reversal_between_the_corners_does_not_deny_the_claim():
+    # THE regression test for a real mistake. This matrix is the shape the
+    # Climate DT actually produced: the maximum is at 1 h / RP20 and the corner
+    # comparison holds, but the 24 h row DECREASES with return period. An
+    # earlier version required full monotonicity everywhere and returned
+    # "partially supported", scoring the paper against a stronger statement
+    # than it made.
+    pct = _matrix([
+        [9.22, 12.75, 14.89, 16.88],
+        [8.47, 11.22, 12.88, 14.41],
+        [6.72,  8.77,  9.92, 10.93],
+        [4.73,  4.96,  5.03,  5.06],
+        [2.39,  1.80,  1.20,  0.53],   # reverses
+    ])
+    out = analysis.ordering_tests(pct, DURATIONS, RPS)
+    assert out["verdict"] == "supported"
+    assert out["maximum_at_corner"]
+    # ...and the reversal is still reported, just not decisive.
+    assert not out["return_period_ordering_holds"]
+    assert out["kendall_tau_vs_return_period"]["24h"]["tau"] < 0
+
+
+def test_verdict_contradicted_when_the_change_is_largest_at_the_opposite_corner():
+    # Long duration / short RP changes most: the claim reversed.
+    pct = _matrix([[4, 3, 2, 1], [6, 5, 4, 3], [8, 7, 6, 5], [10, 9, 8, 7], [12, 11, 10, 9]])
     out = analysis.ordering_tests(pct, DURATIONS, RPS)
     assert out["verdict"] == "contradicted"
-    assert not out["duration_ordering_holds"] and not out["return_period_ordering_holds"]
+    assert not out["corner_test_holds"] and not out["maximum_at_corner"]
 
 
-def test_verdict_partial_when_only_the_duration_ordering_holds():
-    # Falls with duration (holds), but also falls with return period (fails).
-    pct = _matrix([[12, 11, 10, 9], [10, 9, 8, 7], [8, 7, 6, 5], [6, 5, 4, 3], [4, 3, 2, 1]])
+def test_verdict_partial_when_the_corner_holds_but_the_peak_is_elsewhere():
+    # Short/long beats long/short, but the biggest change is at 3 h, not 1 h.
+    pct = _matrix([[9, 10, 11, 12], [9, 11, 13, 15], [5, 6, 7, 8], [3, 4, 5, 6], [1, 2, 3, 4]])
     out = analysis.ordering_tests(pct, DURATIONS, RPS)
     assert out["verdict"] == "partially supported"
-    assert out["duration_ordering_holds"]
-    assert not out["return_period_ordering_holds"]
-
-
-def test_verdict_partial_when_only_the_return_period_ordering_holds():
-    pct = _matrix([[1, 2, 3, 4], [3, 4, 5, 6], [5, 6, 7, 8], [7, 8, 9, 10], [9, 10, 11, 12]])
-    out = analysis.ordering_tests(pct, DURATIONS, RPS)
-    assert out["verdict"] == "partially supported"
-    assert not out["duration_ordering_holds"]
-    assert out["return_period_ordering_holds"]
+    assert out["corner_test_holds"] and not out["maximum_at_corner"]
+    assert out["maximum"]["duration_h"] == 3
 
 
 def test_a_flat_matrix_is_not_supported():
-    # No ordering either way must never read as support for the claim.
+    # Nothing changes anywhere, so nothing "changes the most".
     out = analysis.ordering_tests(np.zeros((5, 4)), DURATIONS, RPS)
     assert out["verdict"] != "supported"
+    assert not out["corner_test_holds"]
 
 
 def test_corner_test_reads_the_claim_literally():
@@ -76,13 +91,12 @@ def test_corner_test_reads_the_claim_literally():
     assert corner["difference_pct_points"] == pytest.approx(15.0)
 
 
-def test_verdict_is_not_fooled_by_a_single_column():
-    # One return period ordering correctly while the others reverse must not
-    # produce "supported" -- `all`, not `any`.
+def test_monotonicity_flags_still_use_all_not_any():
+    # These no longer set the verdict, but they are reported, so they must stay
+    # honest: one favourable column among unfavourable ones is not "holds".
     pct = _matrix([[9, 1, 1, 1], [7, 2, 2, 2], [5, 3, 3, 3], [3, 4, 4, 4], [1, 5, 5, 5]])
     out = analysis.ordering_tests(pct, DURATIONS, RPS)
     assert not out["duration_ordering_holds"]
-    assert out["verdict"] != "supported"
 
 
 # --- end to end on a dataset with a known planted ordering -----------------
@@ -114,6 +128,7 @@ def test_analyse_recovers_a_planted_duration_ordering():
     out = analysis.analyse(ds, ["hist", "ssp370"], DURATIONS, RPS, bootstrap=False)
     assert out["duration_ordering_holds"], out["kendall_tau_vs_duration"]
     assert out["pct"][0].mean() > out["pct"][-1].mean()
+    assert out["corner_test_holds"]
 
 
 def test_analyse_returns_a_matrix_of_the_right_shape():

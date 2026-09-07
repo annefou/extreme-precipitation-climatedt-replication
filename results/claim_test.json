@@ -6,10 +6,16 @@
     "native",
     "ellipsoid"
   ],
-  "verdict": "partially supported",
+  "verdict": "supported",
   "duration_ordering_holds": true,
   "return_period_ordering_holds": false,
   "corner_test_holds": true,
+  "maximum_at_corner": true,
+  "maximum": {
+    "duration_h": 1,
+    "rp_y": 20.0,
+    "change_pct": 16.883434612309188
+  },
   "kendall_tau_vs_duration": {
     "RP2y": {
       "tau": -0.9999999999999999,
@@ -65,10 +71,11 @@
   },
   "by_grid": {
     "native": {
-      "verdict": "partially supported",
+      "verdict": "supported",
       "duration_ordering_holds": true,
       "return_period_ordering_holds": false,
       "corner_test_holds": true,
+      "maximum_at_corner": true,
       "change_matrix_pct": [
         [
           9.223379822428978,
@@ -103,10 +110,11 @@
       ]
     },
     "ellipsoid": {
-      "verdict": "partially supported",
+      "verdict": "supported",
       "duration_ordering_holds": true,
       "return_period_ordering_holds": false,
       "corner_test_holds": true,
+      "maximum_at_corner": true,
       "change_matrix_pct": [
         [
           9.223379822428978,

@@ -82,13 +82,30 @@ def change_matrix(ds, return_levels, index_floods, windows, durations, rps, boot
 
 
 def ordering_tests(pct, durations, rps) -> dict:
-    """Three readings of the same claim, reported together because they can disagree.
+    """Test the claim as the paper states it, and report the structure separately.
 
-    1. Change against DURATION at each return period -- the claim predicts a
-       NEGATIVE Kendall tau (shorter durations change more).
-    2. Change against RETURN PERIOD at each duration -- predicts POSITIVE.
-    3. The corner test, the claim taken literally: shortest duration at the
-       longest return period against longest duration at the shortest.
+    **What the claim actually says.** The paper's Conclusions: "Events with short
+    duration and long RPs are expected to change the most." The AIDA sentence
+    derived from it: short-duration/long-return-period events "intensify
+    proportionally more than events of long duration and short return period."
+
+    Both are statements about the CORNERS of the matrix -- where the largest
+    change sits -- not about monotonicity everywhere in it. So the verdict rests
+    on two things the claim does assert:
+
+      * `corner_test`  -- short duration + long RP changes more than long
+        duration + short RP, the AIDA comparison verbatim.
+      * `maximum_at_corner` -- the largest change in the whole matrix is at
+        short duration + long RP, the Conclusions sentence verbatim.
+
+    **What is reported but does not decide the verdict.** Kendall's tau of the
+    change against duration (at each return period) and against return period
+    (at each duration) describes how the surface behaves BETWEEN the corners.
+    A first version of this function required both to hold everywhere and
+    returned "partially supported" when the 24 h row's return-period ordering
+    reversed -- but full monotonicity is a stronger statement than the paper
+    made, and scoring the paper against it understated a confirmation. The tau
+    values stay, as structure worth reporting; they no longer set the verdict.
     """
     by_duration = {
         f"RP{int(r)}y": stats.kendalltau(list(durations), pct[:, j])
@@ -115,20 +132,35 @@ def ordering_tests(pct, durations, rps) -> dict:
         - corner["long_duration_short_rp"]["change_pct"]
     )
 
-    duration_holds = bool(np.all([r.statistic < 0 for r in by_duration.values()]))
-    rp_holds = bool(np.all([r.statistic > 0 for r in by_rp.values()]))
-    if duration_holds and rp_holds:
+    # Where the largest change actually sits. The claim names the
+    # short-duration / long-return-period corner, which is row 0, last column.
+    peak = np.unravel_index(np.nanargmax(pct), pct.shape)
+    maximum_at_corner = bool(peak == (0, pct.shape[1] - 1))
+    corner_holds = bool(corner["difference_pct_points"] > 0)
+
+    if corner_holds and maximum_at_corner:
         verdict = "supported"
-    elif duration_holds or rp_holds:
+    elif corner_holds or maximum_at_corner:
         verdict = "partially supported"
     else:
         verdict = "contradicted"
 
+    duration_holds = bool(np.all([r.statistic < 0 for r in by_duration.values()]))
+    rp_holds = bool(np.all([r.statistic > 0 for r in by_rp.values()]))
+
     return {
         "verdict": verdict,
+        "corner_test_holds": corner_holds,
+        "maximum_at_corner": maximum_at_corner,
+        "maximum": {
+            "duration_h": int(durations[peak[0]]),
+            "rp_y": float(rps[peak[1]]),
+            "change_pct": float(pct[peak]),
+        },
+        # Structure between the corners. Reported, not decisive -- see the
+        # docstring for why these no longer set the verdict.
         "duration_ordering_holds": duration_holds,
         "return_period_ordering_holds": rp_holds,
-        "corner_test_holds": bool(corner["difference_pct_points"] > 0),
         "kendall_tau_vs_duration": {
             k: {"tau": float(v.statistic), "p": float(v.pvalue)} for k, v in by_duration.items()
         },

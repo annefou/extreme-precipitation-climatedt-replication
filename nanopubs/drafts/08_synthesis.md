@@ -1,4 +1,9 @@
-# 08 — Research Synthesis (optional)
+# 08 — Research Synthesis
+
+> **Not drafted, and deliberately so.** A synthesis is for when several chains
+> test facets of a shared property. This study is one chain. It becomes the right
+> step once the same claim has been tested in a second domain — see the
+> `extends` route in `02_aida.md`. (optional)
 
 > Run the pre-flight checklist in `docs/forrt-form-fields.md` § Pre-flight checklist before drafting.
 >
@@ -66,7 +71,7 @@ What was not tested? What might not generalise?
 ### Completion date (text input, required)
 
 ```
-2026-09-06
+
 ```
 
 <!-- field: source -->

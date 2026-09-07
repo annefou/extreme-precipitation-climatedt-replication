@@ -12,7 +12,7 @@
 Slug becomes part of the nanopub URI. Use kebab-case.
 
 ```
-
+short-duration-long-rp-extremes-change-most
 ```
 
 <!-- field: label -->
@@ -21,7 +21,7 @@ Slug becomes part of the nanopub URI. Use kebab-case.
 A descriptive title (not a sentence). Used for searches/discovery.
 
 ```
-
+Short-duration, long-return-period precipitation extremes intensify most under warming
 ```
 
 <!-- field: aida -->
@@ -43,7 +43,7 @@ Pick one. See `docs/claim-type-vocabulary.md` for the seven options and how to c
 - [ ] computational performance (Computational & Performance)
 - [ ] data governance (access control, licensing, FAIR compliance)
 - [ ] data quality (preprocessing, validation, normalization)
-- [ ] descriptive pattern (distribution, trend, proportion)
+- [x] descriptive pattern (distribution, trend, proportion)
 - [ ] model performance (accuracy, F1 score, evaluation metrics)
 - [ ] scalability (Computational & Performance)
 - [ ] statistical significance (significant difference, relationship, or effect)

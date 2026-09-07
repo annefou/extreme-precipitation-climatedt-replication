@@ -1,0 +1,160 @@
+{
+  "schema_version": "1.0",
+  "kind": "forrt-chain-draft",
+  "chain_shape": "paper-rooted",
+  "source": {
+    "repository": "https://github.com/annefou/extreme-precipitation-climatedt-replication",
+    "commit": "c719ef0315c05ce2020f3f199b7a1f5004fa5340",
+    "figure": "figures/main_result.png"
+  },
+  "steps": [
+    {
+      "step": "01_quote",
+      "template_key": "ANNOTATE_QUOTATION",
+      "template_uri": "https://w3id.org/np/RA24onqmqTMsraJ7ypYFOuckmNWpo4Zv5gsLqhXt7xYPU",
+      "prefill": {
+        "paper": "10.1002/joc.8393",
+        "quotation": "The CP simulations project climate change signals of extreme precipitation intensities of up to 6 or 8.5% increase per K GW depending on the ensemble member. Events with short duration and long RPs are expected to change the most.",
+        "comment": "This is the paper's transferable finding, and the one this replication tests. The magnitude (6 or 8.5% per K) is specific to a COSMO-CLM ensemble over Germany and could only be re-measured elsewhere, not tested. The second sentence asserts a STRUCTURE — that the intensification is largest for short durations and long return periods — which is a hypothesis about thermodynamics and should hold in other domains and other models if it is real. That makes it reusable: a later chain can extend it to another country with the same data. It is also the adaptation-relevant half, because short-duration, long-return-period events are what urban drainage is designed around."
+      },
+      "provenance": {
+        "paper": "CITATION.cff",
+        "quotation": "nanopubs/drafts/01_quote.md",
+        "comment": "nanopubs/drafts/01_quote.md"
+      },
+      "published_uri": null
+    },
+    {
+      "step": "02_aida",
+      "template_key": "AIDA_SENTENCE",
+      "template_uri": "https://w3id.org/np/RALmXhDw3rHcMveTgbv8VtWxijUHwnSqhCmtJFIPKWVaA",
+      "prefill": {
+        "aida": "Under global warming, extreme precipitation events of short duration and long return period intensify proportionally more than events of long duration and short return period."
+      },
+      "provenance": {
+        "aida": "nanopubs/drafts/02_aida.md"
+      },
+      "published_uri": null
+    },
+    {
+      "step": "03_claim",
+      "template_key": "FORRT_CLAIM",
+      "template_uri": "https://w3id.org/np/RAZWyM8D16ya3S1zhCvrG1f0iSpd9-8onVWp0FTvvX7LQ",
+      "prefill": {
+        "claim": "short-duration-long-rp-extremes-change-most",
+        "label": "Short-duration, long-return-period precipitation extremes intensify most under warming",
+        "forrtType": "https://w3id.org/sciencelive/o/terms/descriptive_pattern-FORRT-Claim",
+        "source": "https://doi.org/10.1002/joc.8393"
+      },
+      "provenance": {
+        "claim": "nanopubs/drafts/03_claim.md",
+        "label": "nanopubs/drafts/03_claim.md",
+        "forrtType": "nanopubs/drafts/03_claim.md",
+        "source": "CITATION.cff"
+      },
+      "manual": [
+        "forrtType"
+      ],
+      "published_uri": null
+    },
+    {
+      "step": "04_study",
+      "template_key": "FORRT_REPLICATION",
+      "template_uri": "https://w3id.org/np/RAuLEjPp-4dTvPwMkfHggTto1CgjIftiGRAgHlyeEonjQ",
+      "prefill": {
+        "study": "climatedt-germany-duration-rp-return-levels",
+        "label": "Duration x return-period scaling of precipitation extremes over Germany in the Destination Earth Climate DT",
+        "type": "https://w3id.org/sciencelive/o/terms/Replication-Study",
+        "scope": "Tested: the ORDERING the claim asserts — that extreme precipitation events of\nshort duration and long return period intensify proportionally more than events of long\nduration and short return period. Operationally, whether the largest change in return\nlevel across a duration x return-period matrix falls at the short-duration,\nlong-return-period corner, and whether that corner exceeds the long-duration,\nshort-return-period corner.\n\nNot tested: the original's reported magnitude of 6-8.5% per degree of global warming.\nThat figure is a maximum across the members of one convection-permitting ensemble over\none domain; elsewhere it can only be re-measured, not tested. It is recorded in the\nOutcome as evidence alongside this study's own per-degree figures, with both definitions\nattached.\n\nAlso not tested: the original's comparison against observations (DWD stations,\nKOSTRA-DWD-2010R), its 72-hour duration, its return periods beyond 20 years, and its\nGWL2/GWL3 warming levels.",
+        "methodology": "Data: Destination Earth Climate DT, generation 2 — model IFS-NEMO,\nrealization 1, hourly `clte` stream, variable `avg_tprate` (hourly-mean precipitation\nrate, kg m-2 s-1), `levtype=sfc`, `resolution=high`, i.e. the native HEALPix level 10\ngrid (nside 1024, about 6.3 km). Two 20-year windows of equal length: 1991-2010\n(activity `baseline`, experiment `hist`) and 2030-2049 (activity `projections`,\nexperiment SSP3-7.0).\n\nRetrieval: ECMWF Polytope server-side polygon feature extraction over Germany, one\nrequest per calendar month (480 in total, about 23 GB). MARS cannot crop a HEALPix field\nwith a lat/lon box, so server-side extraction is what makes 20 years of hourly level-10\ndata tractable. The domain polygon is committed with the code (Eurostat NUTS 2021\nlevel 0, simplified to 128 vertices) so the study area is fixed. 8,697 cells fall inside\nit.\n\nReduction: rates converted to millimetres per hour (x3600); backward rolling\naccumulations over 1, 3, 6, 12 and 24 hours; the annual maximum of each accumulation per\ncell per calendar year, with each year carrying the tail of the previous one so a\n24-hour total ending on 1 January still sees 31 December.\n\nEstimation: a regional index-flood analysis per (window, duration). Each cell's\nannual-maxima series is divided by its own at-site mean, the standardised series are\npooled across all cells, and a single generalised extreme value distribution is fitted to\nthe pool by L-moments (Hosking). Return levels for 2, 5, 10 and 20 years are the pooled\ngrowth factor times each cell's index flood. Pooling is what allows a 20-year return\nlevel from a 20-year window, and is the same device the original uses. Uncertainty comes\nfrom resampling CELLS with replacement (n=400), because spatial correlation, not record\nlength, limits the effective independence of the pooled sample.\n\nComparison: the change per matrix cell is the median over grid cells of the per-cell\nratio of return levels between windows, so each cell's own climatology cancels.\n\nCoordinate systems: the Climate DT is delivered on HEALPix defined on a sphere. The whole\nanalysis is repeated on HEALPix on the WGS84 ellipsoid, converted with healpix-resample's\nconservative (mass-preserving) operator, and both grids are reported.\n\nSoftware: Python; numpy, scipy, xarray, earthkit-data, polytope-client, healpix-geo,\nhealpix-resample. The extreme-value estimator, the coordinate conversion and the verdict\nlogic are unit tested — the GEV against scipy.stats.genextreme, and the verdict against\nmatrices whose answer is known by construction.",
+        "deviation": "Different data and different statistics from the original; both are\ndeliberate, and together they are what make agreement informative rather than circular.\n\n1. Model: a single coupled global Earth-system model (IFS-NEMO, one realization) in place\n   of a four-member ensemble of CMIP5 GCMs downscaled with COSMO-CLM.\n2. Resolution: about 5 km (HEALPix level 10, ~6.3 km) in place of 2.8 km. Deep convection\n   is therefore NOT explicitly resolved here, whereas the original's added value came\n   precisely from resolving it.\n3. Domain: all of Germany (8,697 cells) in place of the original's convection-permitting\n   nest over Southern and Central Germany (~411,000 km2).\n4. Scenario: SSP3-7.0 in place of RCP 8.5.\n5. Periods: two 20-year windows (1991-2010, 2030-2049) in place of a transient 1971-2100\n   simulation with a 1971-2005 reference and 30-year running windows.\n6. Warming: one interval of 0.93 K of global-mean warming between the windows, in place of\n   the original's GWL2 and GWL3 (2 K and 3 K). This study therefore cannot test the\n   linearity of the response with warming, only the ordering at one interval.\n7. Durations: 1, 3, 6, 12, 24 hours in place of 1, 6, 12, 24, 72 hours. There is no 72-hour\n   duration here and no 3-hour duration there; the shortest, most convectively driven\n   durations the original emphasises are below the archive's hourly resolution.\n8. Estimator: a regional index-flood GEV fitted by L-moments to annual maxima, in place of\n   a partial-series peak-over-threshold selection with an exponential fit in logarithmic\n   space following the German DWA-A 531 guideline.\n9. Return periods: up to 20 years in place of up to 100 years. Twenty years of data cannot\n   support a 100-year return level even with pooling.\n10. No sub-hourly correction: the original applies DWA-A 531 factors (1.14, 1.07, 1.04,\n    1.03) for event durations up to 4 hours to compensate for hourly sampling. This study\n    applies none, so its short-duration intensities are, if anything, conservative — which\n    matters because the short durations are where it finds the largest changes.\n11. No observational comparison: the original evaluates against DWD station data and\n    KOSTRA-DWD-2010R. This study compares model windows to each other only."
+      },
+      "provenance": {
+        "study": "nanopubs/drafts/04_study.md",
+        "label": "nanopubs/drafts/04_study.md",
+        "type": "nanopubs/drafts/04_study.md",
+        "scope": "nanopubs/drafts/04_study.md",
+        "methodology": "nanopubs/drafts/04_study.md",
+        "deviation": "nanopubs/drafts/04_study.md"
+      },
+      "manual": [
+        "type"
+      ],
+      "published_uri": null
+    },
+    {
+      "step": "05_outcome",
+      "template_key": "FORRT_REPLICATION_OUTCOME",
+      "template_uri": "https://w3id.org/np/RA2zljn0Nw9SadppOyxZoh-_Rxosslrq-vYG-p9SttnJE",
+      "prefill": {
+        "outcome": "climatedt-germany-duration-rp-outcome",
+        "label": "Climate DT confirms that short-duration, long-return-period extremes change most over Germany",
+        "date": "2026-09-06",
+        "validationStatus": "https://w3id.org/sciencelive/o/terms/Validated",
+        "conclusion": "The claim is confirmed. In the Destination Earth Climate DT, the largest increase in extreme precipitation return level over Germany between 1991-2010 and SSP3-7.0 2030-2049 falls at the shortest duration and the longest return period examined - +16.9% at 1 hour / 20 years - which is exactly the corner the original identifies. The change decreases monotonically with duration at every return period examined (Kendall tau = -1.000).\n\nThis holds in a modelling framework sharing neither its input data nor its statistics with the original: a single coupled global Earth-system model at about 5 km under SSP3-7.0, analysed with a regional index-flood GEV fitted to annual maxima, against the original's four-member convection-permitting COSMO-CLM ensemble at 2.8 km under RCP 8.5 analysed with a peak-over-threshold exponential fit. The agreement therefore tests the claim rather than the pipeline.",
+        "evidence": "Change in return level, SSP3-7.0 2030-2049 against historical 1991-2010, median over 8,697 cells, by duration (rows) and return period in years (columns):\n\n           2 y      5 y     10 y     20 y\n   1 h   +9.22%  +12.75%  +14.89%  +16.88%\n   3 h   +8.47%  +11.22%  +12.88%  +14.41%\n   6 h   +6.72%   +8.77%   +9.92%  +10.93%\n  12 h   +4.73%   +4.96%   +5.03%   +5.06%\n  24 h   +2.39%   +1.80%   +1.20%   +0.53%\n\nThe maximum of the matrix, +16.88%, is at 1 hour / 20 years - the short-duration, long-return-period corner. The corner comparison the claim states is +16.88% against +2.39% at 24 hours / 2 years, a difference of 14.5 percentage points. The change falls monotonically with duration at every return period (Kendall tau = -1.000, p = 0.017).\n\nGlobal-mean warming between the two windows is 0.9295 K, computed from the Climate DT's own monthly-mean 2 m temperature. Expressed per degree, the change runs from +9.9% per degree at 1 hour / 2 years to +18.2% per degree at 1 hour / 20 years, and from +2.6% down to +0.6% per degree at 24 hours.\n\nThe original reports 6-8.5% per degree of global warming. THE TWO FIGURES ARE NOT DIRECTLY COMPARABLE and neither reproduces the other: the original's is a maximum across ensemble members from a peak-over-threshold exponential fit over durations of 1-72 hours and return periods to 100 years; this study's is a median over grid cells from a pooled GEV over 1-24 hours and return periods to 20 years. With that caveat attached, the short durations here sit at or above the original's band and the long durations well below it, consistent with a steeper dependence on duration in the Climate DT than in the convection-permitting ensemble.\n\nUncertainty is from bootstrap resampling of grid cells (n = 400); the 95% intervals do not change the ordering.\n\nRepeating the entire analysis on HEALPix converted to the WGS84 ellipsoid with a conservative, mass-preserving operator gives the same verdict, with a maximum disagreement of 0.000 percentage points in any cell of the matrix.",
+        "confidenceLevel": "https://w3id.org/sciencelive/o/terms/Moderate",
+        "limitations": "1. AT 24 HOURS THE RETURN-PERIOD ORDERING REVERSES. The change decreases with return period there, from +2.39% at 2 years to +0.53% at 20 years (Kendall tau = -1.000): rarer daily totals change least. This does not contradict the claim, which is about where the maximum sits, but it bounds it - the intensification found here is concentrated in short-duration extremes and is largely absent for rare 24-hour totals.\n\n2. ONE MODEL REALIZATION. A single member cannot separate the forced response from internal variability over 20-year windows, and cannot address the original's finding about ensemble spread. The original stresses that transient, multi-member data are needed for confidence in these signals; this study has neither multiple members nor a transient trajectory.\n\n3. ONE WARMING INTERVAL of 0.93 K, well short of the original's 2 K and 3 K warming levels. The linearity of the response with warming is untested here, and per-degree figures derived from a sub-degree interval are correspondingly uncertain.\n\n4. RESOLUTION. About 5 km is the grey zone, not convection-permitting: deep convection is parametrized. The original's added value came precisely from resolving it. Short convective extremes are therefore represented less faithfully here - in the very duration range where this study finds the largest changes.\n\n5. HOURLY FLOOR. The archive resolves one hour. The original additionally corrects for sub-hourly behaviour with DWA-A 531 factors, which are not applied here.\n\n6. RETURN PERIODS to 20 years only, from 20-year windows. The original's 50- and 100-year levels are out of reach.\n\n7. DOMAIN MISMATCH. This study covers all of Germany; the original's convection-permitting nest covers Southern and Central Germany (about 411,000 km2).\n\n8. NO OBSERVATIONAL EVALUATION. The original compares against DWD station data and KOSTRA-DWD-2010R. This study compares model windows to each other only, so it says nothing about whether the Climate DT's absolute return levels are realistic - only about how they change."
+      },
+      "provenance": {
+        "outcome": "nanopubs/drafts/05_outcome.md",
+        "label": "nanopubs/drafts/05_outcome.md",
+        "date": "CITATION.cff",
+        "validationStatus": "nanopubs/drafts/05_outcome.md",
+        "conclusion": "nanopubs/drafts/05_outcome.md",
+        "evidence": "nanopubs/drafts/05_outcome.md",
+        "confidenceLevel": "nanopubs/drafts/05_outcome.md",
+        "limitations": "nanopubs/drafts/05_outcome.md"
+      },
+      "manual": [
+        "validationStatus",
+        "confidenceLevel"
+      ],
+      "published_uri": null
+    },
+    {
+      "step": "06_citation",
+      "template_key": "CITATION_CITO",
+      "template_uri": "https://w3id.org/np/RA43F9EoOuzF0xoNUnCMNyFsfIqlsuWDdPHCnN0wCdCAw",
+      "prefill": {
+        "st02": [
+          {
+            "cites": "http://purl.org/spar/cito/confirms",
+            "cited": "https://doi.org/10.1002/joc.8393"
+          }
+        ]
+      },
+      "provenance": {
+        "st02": "cites = validation status (see 05_outcome); cited = CITATION.cff references[article]"
+      },
+      "published_uri": null
+    }
+  ],
+  "carry_forward": [
+    {
+      "from": "01_quote",
+      "into": "02_aida",
+      "field": "project"
+    },
+    {
+      "from": "02_aida",
+      "into": "03_claim",
+      "field": "aida"
+    },
+    {
+      "from": "03_claim",
+      "into": "04_study",
+      "field": "claim"
+    },
+    {
+      "from": "04_study",
+      "into": "05_outcome",
+      "field": "study"
+    },
+    {
+      "from": "05_outcome",
+      "into": "06_citation",
+      "field": "work"
+    }
+  ]
+}

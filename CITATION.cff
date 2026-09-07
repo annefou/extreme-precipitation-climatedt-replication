@@ -1,6 +1,19 @@
 cff-version: 1.2.0
-title: "extreme-precipitation-climatedt-replication"
+title: "Extreme precipitation return levels over Germany, replicated with Destination Earth Climate DT"
 message: "If you use this software, please cite it as below."
+abstract: >-
+  A replication of the headline claim of Hundhausen et al. (2024,
+  doi:10.1002/joc.8393) — that under global warming the largest increases in
+  extreme precipitation return levels occur for short event durations and long
+  return periods — using Destination Earth Climate DT generation 2 in place of
+  the original convection-permitting COSMO-CLM ensemble. Hourly precipitation
+  over Germany at HEALPix level 10 (~6.3 km) is retrieved for two 20-year
+  windows (1991-2010 and SSP3-7.0 2030-2049), reduced to annual maxima for
+  1/3/6/12/24-hour durations, and fitted with a regional index-flood GEV. The
+  claim is SUPPORTED: the largest change in the matrix, +16.9%, falls at
+  1 hour / 20-year return period, and the change decreases monotonically with
+  duration at every return period. At 24 hours the return-period ordering
+  reverses, which is reported as a limitation.
 type: software
 authors:
   - family-names: "Fouilloux"
@@ -37,6 +50,14 @@ keywords:
   - FORRT
   - nanopublication
   - Science-Live
+  - extreme precipitation
+  - return level
+  - generalised extreme value distribution
+  - Destination Earth
+  - climate digital twin
+  - HEALPix
+  - climate change adaptation
+  - Germany
 references:
   - type: article
     title: "Climate change signals of extreme precipitation return levels for Germany in a transient convection-permitting simulation ensemble"

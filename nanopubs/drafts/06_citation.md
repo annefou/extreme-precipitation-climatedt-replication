@@ -23,7 +23,7 @@ URI of the Outcome published in step 05. Pull from `nanopubs/PUBLISHED.md`.
 
 Choose based on the Outcome's validation status:
 
-- Validated → `confirms`
+- Validated → `confirms`  ← this study
 - PartiallySupported → `qualifies`
 - Contradicted → `disputes`
 
@@ -32,7 +32,7 @@ For question-rooted chains where there is no original paper to confirm/dispute, 
 > **Note:** `replicates` is NOT in the Science Live dropdown (despite existing in upstream CiTO). When citing a notebook/tutorial that was directly reused, use **`credits`** instead.
 
 ```
-
+confirms
 ```
 
 ##### DOI or other URL of the cited work (text input)

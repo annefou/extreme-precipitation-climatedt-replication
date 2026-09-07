@@ -1,7 +1,7 @@
 {
   "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
   "@type": "SoftwareSourceCode",
-  "name": "extreme-precipitation-climatedt-replication",
+  "name": "Extreme precipitation return levels over Germany, replicated with Destination Earth Climate DT",
   "description": "Replication of Hundhausen et al. (2024) extreme-precipitation return-level scaling over Germany using Destination Earth Climate DT km-scale hourly data on HEALPix",
   "version": "0.1.0",
   "dateCreated": "2026-09-06",
@@ -15,7 +15,10 @@
     "name": "Python",
     "version": "3.12"
   },
-  "operatingSystem": ["Linux", "macOS"],
+  "operatingSystem": [
+    "Linux",
+    "macOS"
+  ],
   "author": [
     {
       "@type": "Person",
@@ -33,7 +36,15 @@
     "reproducibility",
     "FORRT",
     "nanopublication",
-    "Science-Live"
+    "Science-Live",
+    "extreme precipitation",
+    "return level",
+    "generalised extreme value distribution",
+    "Destination Earth",
+    "climate digital twin",
+    "HEALPix",
+    "climate change adaptation",
+    "Germany"
   ],
   "referencePublication": {
     "@type": "ScholarlyArticle",
@@ -45,5 +56,23 @@
     "@type": "Organization",
     "name": "Science Live",
     "url": "https://platform.sciencelive4all.org"
-  }
+  },
+  "softwareRequirements": [
+    "covjsonkit",
+    "dask",
+    "earthkit-data",
+    "healpix-geo",
+    "healpix-resample",
+    "jupytext",
+    "matplotlib",
+    "netcdf4",
+    "numpy",
+    "pandas",
+    "polytope-client",
+    "python>=3.12",
+    "pytorch-cpu",
+    "scipy",
+    "snakemake",
+    "xarray"
+  ]
 }

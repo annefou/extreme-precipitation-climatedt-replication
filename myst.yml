@@ -1,6 +1,6 @@
 version: 1
 project:
-  title: "extreme-precipitation-climatedt-replication"
+  title: "Extreme precipitation return levels over Germany, replicated with Destination Earth"
   authors:
     - name: "Anne Fouilloux"
       orcid: "https://orcid.org/0000-0002-1784-2920"
@@ -16,7 +16,7 @@ project:
     - file: notebooks/04_figures.ipynb
     - file: nanopubs/README.md
 site:
-  title: "extreme-precipitation-climatedt-replication"
+  title: "Extreme precipitation return levels over Germany, replicated with Destination Earth"
 # IMPORTANT: do NOT set base_url here — MyST silently ignores the key.
 # BASE_URL is set in .github/workflows/jupyter-book.yml as an env var on the
 # `myst build` step, derived from the GitHub repo name. See

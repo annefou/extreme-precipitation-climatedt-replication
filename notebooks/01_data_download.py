@@ -216,11 +216,22 @@ if HAVE_DESTINE:
             "credential aside: POLYTOPE_KEY_PATH=/nonexistent snakemake --cores 1"
         )
         raise
+elif climatedt.existing_real_artefact(Path("../data/clean/annual_maxima.nc")):
+    # No credentials, but the committed analysis-ready artefact is REAL. Leave it
+    # alone. This is the case in CI, which has no DestinE account: writing the
+    # synthetic stand-in here would make 02 recompute from invented numbers and
+    # the published Jupyter Book would show them. The book must show the result.
+    print(
+        "No DestinE credentials, but data/clean/annual_maxima.nc is real\n"
+        "Destination Earth output (provenance=destine-climate-dt).\n"
+        "Doing nothing: 02 will keep it and 03-04 will report the real result.\n"
+        "To force the synthetic smoke test instead, delete data/clean/."
+    )
 else:
     print(
-        "No DestinE credentials — writing the SYNTHETIC stand-in instead.\n"
-        "Notebooks 02-04 will run, and every artefact they produce will be\n"
-        "stamped provenance=synthetic. This is a smoke test, not a result."
+        "No DestinE credentials and no committed real result — writing the\n"
+        "SYNTHETIC stand-in. Notebooks 02-04 will run, and every artefact they\n"
+        "produce will be stamped provenance=synthetic. A smoke test, not a result."
     )
     written = synthetic_climatedt.write_all(RAW_DIR)
     for p in written:

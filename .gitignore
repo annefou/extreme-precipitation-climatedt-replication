@@ -35,6 +35,15 @@ data/*
 # the study area across runs and machines; fetching a boundary at runtime would
 # let the domain drift with an upstream dataset. Provenance is in the file.
 !data/germany_polygon.json
+# ...and the ANALYSIS-READY artefact. data/clean/annual_maxima*.nc is 7 MB per
+# grid and is what notebooks 03 and 04 actually consume. Committing it is what
+# lets the Jupyter Book show the REAL result: CI has no DestinE credentials, so
+# without these files 01 writes a synthetic stand-in, 02 recomputes from it, and
+# the published book shows invented numbers under a SYNTHETIC watermark. The
+# 23 GB of hourly input stays out; this is the reduced dataset the study rests
+# on, and the one a reader would want to reuse anyway.
+!data/clean/
+!data/clean/*.nc
 
 # Prior-chain import cache — never committed; regenerated on demand from
 # the entry URI in CITATION.cff `references:`. The persistent pointer to

@@ -189,6 +189,28 @@ def clmn_global_request(window: str, year: int, param: str = PARAM_AVG_2T) -> di
     }
 
 
+REAL_PROVENANCE = "destine-climate-dt"
+
+
+def existing_real_artefact(path: Path) -> bool:
+    """True if `path` is a NetCDF this pipeline produced from real Climate DT data.
+
+    Used to stop a credential-less run from overwriting committed real results
+    with the synthetic stand-in. CI has no DestinE account, so without this the
+    published Jupyter Book would rebuild every figure from invented numbers --
+    which is exactly what happened before this check existed.
+    """
+    if not path.exists():
+        return False
+    try:
+        import xarray as xr
+
+        with xr.open_dataset(path) as ds:
+            return ds.attrs.get("provenance") == REAL_PROVENANCE
+    except Exception:  # noqa: BLE001 - an unreadable file is not a real artefact
+        return False
+
+
 def credential_source() -> str | None:
     """Where polytope-client will find a credential, or None if it will find none.
 

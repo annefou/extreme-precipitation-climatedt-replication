@@ -61,8 +61,21 @@ CLEAN_DIR.mkdir(parents=True, exist_ok=True)
 # ## Inputs
 
 # %%
+# RECOMPUTE or LOAD. With no raw input but a committed analysis-ready artefact
+# that is real Destination Earth output, this notebook loads it instead of
+# rebuilding it. That is the CI case: the runner has no DestinE account, and
+# recomputing there would rebuild the artefact from the synthetic stand-in — so
+# the published Jupyter Book would show invented numbers under a SYNTHETIC
+# watermark instead of the study's result. Which is exactly what it did before
+# this branch existed.
+OUT_PATH = CLEAN_DIR / "annual_maxima.nc"
+RECOMPUTE = any(RAW_DIR.glob("precip_*.nc")) or not climatedt.existing_real_artefact(OUT_PATH)
+print(f"raw input present: {any(RAW_DIR.glob('precip_*.nc'))}")
+print(f"committed artefact is real: {climatedt.existing_real_artefact(OUT_PATH)}")
+print(f"-> {'recomputing from raw' if RECOMPUTE else 'loading the committed real artefact'}")
+
 available = {}
-for window in climatedt.WINDOWS:
+for window in climatedt.WINDOWS if RECOMPUTE else []:
     files = sorted(RAW_DIR.glob(f"precip_{window}_*.nc"))
     if not files:
         raise FileNotFoundError(
@@ -95,7 +108,11 @@ if len(provenances) > 1:
         "are written only when no DestinE credential is present."
     )
 
-PROVENANCE = next(iter(provenances))
+if RECOMPUTE:
+    PROVENANCE = next(iter(provenances))
+else:
+    with xr.open_dataset(OUT_PATH) as _real:
+        PROVENANCE = _real.attrs["provenance"]
 print(f"\nprovenance: {PROVENANCE}")
 if PROVENANCE != "destine-climate-dt":
     print(
@@ -235,25 +252,25 @@ def annual_maxima_for_window(files: list[Path], resampler=None) -> xr.Dataset:
 
 # %%
 GRIDS: dict[str, object] = {"native": None}
-if healpix_geo is not None:
-    probe_file = next(iter(available.values()))[0]
-    with xr.open_dataset(probe_file) as probe:
-        GRIDS["ellipsoid"] = ellipsoid.build_resampler(
-            probe["longitude"].values, probe["latitude"].values
-        )
-    print("ellipsoid resampler built (sphere -> WGS84 via PSFResampler)")
-else:
-    print("healpix-resample unavailable — building the native grid only")
-
 by_grid: dict[str, dict[str, xr.Dataset]] = {}
-for grid, resampler in GRIDS.items():
-    print(f"\n=== {grid} grid ===", flush=True)
-    by_grid[grid] = {}
-    for window, files in available.items():
-        print(f"{window} ({climatedt.WINDOWS[window]['label']}):", flush=True)
-        by_grid[grid][window] = annual_maxima_for_window(files, resampler)
 
-per_window = by_grid["native"]
+if RECOMPUTE:
+    if healpix_geo is not None:
+        probe_file = next(iter(available.values()))[0]
+        with xr.open_dataset(probe_file) as probe:
+            GRIDS["ellipsoid"] = ellipsoid.build_resampler(
+                probe["longitude"].values, probe["latitude"].values
+            )
+        print("ellipsoid resampler built (sphere -> WGS84, conservative)")
+    else:
+        print("healpix-resample unavailable — building the native grid only")
+
+    for grid, resampler in GRIDS.items():
+        print(f"\n=== {grid} grid ===", flush=True)
+        by_grid[grid] = {}
+        for window, files in available.items():
+            print(f"{window} ({climatedt.WINDOWS[window]['label']}):", flush=True)
+            by_grid[grid][window] = annual_maxima_for_window(files, resampler)
 
 # %% [markdown]
 # ## Combine into one artefact
@@ -313,9 +330,20 @@ def combine(per_window: dict[str, xr.Dataset], grid: str) -> xr.Dataset:
     return out
 
 
-combined_by_grid = {grid: combine(pw, grid) for grid, pw in by_grid.items()}
+if RECOMPUTE:
+    combined_by_grid = {grid: combine(pw, grid) for grid, pw in by_grid.items()}
+else:
+    # Load what the real run committed, rather than rebuilding it.
+    combined_by_grid = {}
+    for grid, fname in (("native", "annual_maxima.nc"),
+                        ("ellipsoid", "annual_maxima_ellipsoid.nc")):
+        path = CLEAN_DIR / fname
+        if climatedt.existing_real_artefact(path):
+            combined_by_grid[grid] = xr.load_dataset(path)
+    print(f"loaded committed real artefacts: {list(combined_by_grid)}")
+
 combined = combined_by_grid["native"]
-windows = list(per_window)
+windows = [str(w) for w in combined["window"].values]
 print(f"blocks per window: {dict((w, combined.sizes['block']) for w in windows)}")
 for grid, ds_grid in combined_by_grid.items():
     print(f"  {grid:9s} {ds_grid.sizes['cell']} cells")

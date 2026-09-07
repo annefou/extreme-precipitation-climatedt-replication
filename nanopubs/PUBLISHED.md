@@ -62,3 +62,25 @@ https://platform.sciencelive4all.org/np/?uri=<full-URI>
 - Drafts: `nanopubs/drafts/`
 - Form structure: `docs/forrt-form-fields.md`
 - Chain shape decision: `docs/chain-decision-tree.md`
+
+## A note on the Wikidata topics
+
+The topics in the published AIDA were **added by hand in the publishing wizard**,
+not carried from `chain-draft.json`. At the time of publication
+`build_chain_draft.py` was dropping them silently — it read only bullets, while
+`02_aida.md` listed its topics in a fenced block, and it reported nothing. Fixed
+in template PR #36 and in this repo's copy; the drafts now write `label (Qnnn)`
+so the QID that was type-checked is the one used.
+
+Verified in the published RDF (`https://w3id.org/np/RAT7-…`, not the
+`…/sciencelive/np/…` viewer URL, which serves an HTML shell):
+
+```
+<http://schema.org/about> <http://www.wikidata.org/entity/Q111089542>,
+                          <http://www.wikidata.org/entity/Q125928>,
+                          <http://www.wikidata.org/entity/Q7942> ;
+```
+
+`Q125928` is *climate change*; `Q7942` is *global warming*. Both are present. The
+draft specifies Q7942, which is the item that was type-checked against this
+field's `owl:Class` requirement.
